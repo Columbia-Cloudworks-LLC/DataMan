@@ -20,5 +20,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DataMan.Core\DataMan.Core.csproj" />
+    <ProjectReference Include="..\DataMan.Plugins.SampleCsv\DataMan.Plugins.SampleCsv.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
   </ItemGroup>
+
+  <Target Name="CopySampleCsvPlugin" AfterTargets="Build">
+    <PropertyGroup>
+      <SampleCsvOut>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\DataMan.Plugins.SampleCsv\bin\$(Configuration)\net8.0'))</SampleCsvOut>
+      <SampleCsvDest>$(OutputPath)sample-plugins\samplecsv\</SampleCsvDest>
+    </PropertyGroup>
+    <MakeDir Directories="$(SampleCsvDest)" />
+    <Copy SourceFiles="$(SampleCsvOut)\DataMan.Plugins.SampleCsv.dll;$(SampleCsvOut)\plugin.json" DestinationFolder="$(SampleCsvDest)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

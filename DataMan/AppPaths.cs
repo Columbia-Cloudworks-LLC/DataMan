@@ -22,4 +22,6 @@ public static class AppPaths
     }
 
     public static string DatabasePath => Path.Combine(DataRoot, "dataman.db");
+
+    public static string PluginsDirectory => Path.Combine(DataRoot, "plugins");
 }

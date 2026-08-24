@@ -1,5 +1,6 @@
 using DataMan.Contracts;
 using DataMan.Core.Ingestion;
+using DataMan.Core.Plugins;
 using DataMan.Core.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -7,15 +8,16 @@ namespace DataMan.Core.Hosting;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddDataManCore(this IServiceCollection services, string databasePath)
+    public static IServiceCollection AddDataManCore(
+        this IServiceCollection services,
+        string databasePath,
+        string? pluginsDirectory = null)
     {
         services.AddSingleton(new AppDatabase(databasePath));
         services.AddSingleton<IItemWriter, SqliteItemWriter>();
         services.AddSingleton<LibraryRepository>();
-        services.AddSingleton<IIngestionPlugin, PlainTextPlugin>();
-        services.AddSingleton<IIngestionPlugin, MarkdownPlugin>();
-        services.AddSingleton<IIngestionPlugin, LogFilePlugin>();
-        services.AddSingleton<PluginRegistry>();
+        services.AddSingleton(_ => PluginCatalog.Load(pluginsDirectory, BuiltInIngestionPlugins.CreateAll()));
+        services.AddSingleton(sp => new PluginRegistry(sp.GetRequiredService<CatalogSnapshot>().Plugins));
         services.AddSingleton<IngestionOrchestrator>();
         return services;
     }
