@@ -35,6 +35,7 @@ public partial class App : Application
             }
 
             _window = new MainWindow();
+            _window.Closed += OnWindowClosed;
             MainWindow = _window;
             _window.Activate();
         }
@@ -43,6 +44,12 @@ public partial class App : Application
             WriteCrashLog(ex);
             throw;
         }
+    }
+
+    private static void OnWindowClosed(object sender, WindowEventArgs args)
+    {
+        ((IDisposable)Services).Dispose();
+        MainWindow = null;
     }
 
     private static void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
