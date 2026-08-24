@@ -158,6 +158,30 @@ public sealed class MvpLoopTests : IDisposable
 
         Assert.Equal(1, _library.GetStats().ItemCount);
         Assert.Equal(afterFirst, _library.CountEmbeddings());
+
+        var bandicoot = Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Semantic(QueryText.Parse("bandicoot")))).Items;
+        Assert.Single(bandicoot);
+
+        var wombat = Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Semantic(QueryText.Parse("wombats")))).Items;
+        Assert.Empty(wombat);
+    }
+
+    [Fact]
+    public async Task Semantic_query_returns_item_for_shared_terms()
+    {
+        var file = Path.Combine(_root, "notes.md");
+        await File.WriteAllTextAsync(file, "The quokka forages at dusk on Rottnest Island.");
+        await _orchestrator.IngestPathsAsync([file]);
+
+        var outcome = _library.Search(
+            new LibraryQuery.Semantic(QueryText.Parse("quokka dusk")));
+        var hits = Assert.IsType<SearchOutcome.Hits>(outcome).Items;
+
+        Assert.Single(hits);
+        Assert.Equal("notes.md", hits[0].Item.Title);
+        Assert.False(string.IsNullOrWhiteSpace(hits[0].Snippet));
     }
 
     public void Dispose()
