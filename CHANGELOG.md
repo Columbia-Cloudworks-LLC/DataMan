@@ -7,6 +7,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Release Please updates this file when a release pull request is merged to `main`.
 
+## [0.1.1](https://github.com/Columbia-Cloudworks-LLC/DataMan/compare/v0.1.0...v0.1.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ci:** isolate the publish zip path from dotnet logs ([cb3777d](https://github.com/Columbia-Cloudworks-LLC/DataMan/commit/cb3777d1b38f6adf8a1ae030abaf7b9f0710fe35))
+
 ## [0.1.0] - 2026-08-23
 
 ### Added
