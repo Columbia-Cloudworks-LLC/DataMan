@@ -143,7 +143,8 @@ public sealed class SemanticCorpus
             JOIN chunks c ON c.chunk_id = e.chunk_id
             JOIN items i ON i.item_id = e.item_id
             WHERE e.model = $model
-              AND i.kind != 'folder';
+              AND i.kind != 'folder'
+              LIMIT 5000;
             """;
         command.Parameters.AddWithValue("$model", _embedder.Model.Id);
 
