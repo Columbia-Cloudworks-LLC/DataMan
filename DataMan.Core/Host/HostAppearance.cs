@@ -46,8 +46,20 @@ public sealed class HostAppearance
         }
 
         var tmp = _filePath + ".tmp";
-        File.WriteAllText(tmp, appearance.Token + Environment.NewLine);
-        File.Move(tmp, _filePath, overwrite: true);
+        try
+        {
+            File.WriteAllText(tmp, appearance.Token + Environment.NewLine);
+            File.Move(tmp, _filePath, overwrite: true);
+        }
+        catch (IOException)
+        {
+            return;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return;
+        }
+
         Current = appearance;
         Changed?.Invoke(Current);
     }

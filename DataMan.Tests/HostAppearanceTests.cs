@@ -57,6 +57,21 @@ public sealed class HostAppearanceTests : IDisposable
         Assert.IsType<Appearance.System>(HostAppearance.Open(_root).Current);
     }
 
+    [Fact]
+    public void Select_io_failure_keeps_current_and_does_not_throw()
+    {
+        var host = HostAppearance.Open(_root);
+        var raised = 0;
+        host.Changed += _ => raised++;
+        Directory.CreateDirectory(Path.Combine(_root, "appearance.tmp"));
+
+        host.Select(new Appearance.Dark());
+
+        Assert.IsType<Appearance.System>(host.Current);
+        Assert.Equal(0, raised);
+        Assert.False(File.Exists(Path.Combine(_root, "appearance")));
+    }
+
     public void Dispose()
     {
         try
