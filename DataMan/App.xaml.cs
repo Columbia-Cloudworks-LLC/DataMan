@@ -2,6 +2,7 @@
 using DataMan.Core.Ingestion;
 using DataMan.Core.Search;
 using DataMan.Core.Storage;
+using DataMan.Embeddings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
@@ -75,7 +76,8 @@ public partial class App : Application
         });
         services.AddDataManCore(AppPaths.DatabasePath, AppPaths.PluginsDirectory);
         services.AddSingleton<ITextEmbedder>(_ =>
-            OnnxTextEmbedder.TryCreate() ?? (ITextEmbedder)new UnavailableEmbedder());
+            OnnxTextEmbedder.TryCreate([AppPaths.ModelsDirectory, Path.Combine(AppContext.BaseDirectory, "models")])
+            ?? (ITextEmbedder)new UnavailableEmbedder());
         return services.BuildServiceProvider();
     }
 }

@@ -14,5 +14,6 @@
   </Project>
   <Project Path="DataMan.Contracts/DataMan.Contracts.csproj" />
   <Project Path="DataMan.Core/DataMan.Core.csproj" />
+  <Project Path="DataMan.Embeddings/DataMan.Embeddings.csproj" />
   <Project Path="DataMan.Tests/DataMan.Tests.csproj" />
 </Solution>

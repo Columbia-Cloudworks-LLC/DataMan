@@ -3,7 +3,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.Tokenizers;
 
-namespace DataMan;
+namespace DataMan.Embeddings;
 
 public sealed class OnnxTextEmbedder : ITextEmbedder, IDisposable
 {
@@ -28,9 +28,9 @@ public sealed class OnnxTextEmbedder : ITextEmbedder, IDisposable
 
     public bool IsAvailable => true;
 
-    public static OnnxTextEmbedder? TryCreate()
+    public static OnnxTextEmbedder? TryCreate(IReadOnlyList<string> candidateDirectories)
     {
-        foreach (var directory in CandidateDirectories())
+        foreach (var directory in candidateDirectories)
         {
             var created = TryCreate(Path.Combine(directory, ModelFileName));
             if (created is not null)
@@ -131,12 +131,6 @@ public sealed class OnnxTextEmbedder : ITextEmbedder, IDisposable
         }
 
         return inputs;
-    }
-
-    private static IEnumerable<string> CandidateDirectories()
-    {
-        yield return AppPaths.ModelsDirectory;
-        yield return Path.Combine(AppContext.BaseDirectory, "models");
     }
 
     private static int ReadOutputWidth(InferenceSession session)
