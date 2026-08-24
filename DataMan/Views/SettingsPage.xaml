@@ -12,6 +12,12 @@
         <TextBlock Text="Library" Style="{StaticResource SubtitleTextBlockStyle}" />
         <TextBlock x:Name="DatabasePathText" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
         <TextBlock x:Name="SchemaText" Opacity="0.75" />
+        <TextBlock Text="Appearance" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,0" />
+        <StackPanel>
+            <RadioButton x:Name="AppearanceSystem" Content="System" GroupName="Appearance" />
+            <RadioButton x:Name="AppearanceLight" Content="Light" GroupName="Appearance" />
+            <RadioButton x:Name="AppearanceDark" Content="Dark" GroupName="Appearance" />
+        </StackPanel>
         <TextBlock Text="Plugins" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,0" />
         <ListView x:Name="PluginList" SelectionMode="None" />
     </StackPanel>
