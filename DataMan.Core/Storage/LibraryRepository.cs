@@ -1,4 +1,5 @@
 using DataMan.Contracts;
+using DataMan.Core.Search;
 using Microsoft.Data.Sqlite;
 
 namespace DataMan.Core.Storage;
@@ -6,10 +7,12 @@ namespace DataMan.Core.Storage;
 public sealed class LibraryRepository
 {
     private readonly AppDatabase _database;
+    private readonly SemanticCorpus _corpus;
 
-    public LibraryRepository(AppDatabase database)
+    public LibraryRepository(AppDatabase database, SemanticCorpus corpus)
     {
         _database = database;
+        _corpus = corpus;
     }
 
     public string EnsureLocalSource(string displayName, string? rootPath)
@@ -95,12 +98,50 @@ public sealed class LibraryRepository
         };
     }
 
-    public IReadOnlyList<SearchHit> Search(string query, int limit = 50)
+    public SearchOutcome Search(LibraryQuery query)
     {
-        var match = ToMatchQuery(query);
+        return query.Match(
+            recent => new SearchOutcome.Hits(ListAsHits(Clamp(recent.Limit))),
+            lexical => new SearchOutcome.Hits(SearchFts(lexical.Text, Clamp(lexical.Limit))),
+            semantic => SearchSemantic(semantic));
+    }
+
+    private SearchOutcome SearchSemantic(LibraryQuery.Semantic semantic)
+    {
+        return _corpus.TryNearestItems(semantic.Text, Clamp(semantic.Limit)) switch
+        {
+            SemanticLookup.EmbedderMissing =>
+                new SearchOutcome.SemanticUnavailable(SemanticGap.EmbedderMissing),
+            SemanticLookup.EmptyIndex =>
+                new SearchOutcome.SemanticUnavailable(SemanticGap.IndexEmpty),
+            SemanticLookup.Found found => new SearchOutcome.Hits(LoadNeighborHits(found.Items)),
+            _ => throw new ArgumentOutOfRangeException(nameof(semantic))
+        };
+    }
+
+    private IReadOnlyList<SearchHit> LoadNeighborHits(IReadOnlyList<ItemNeighbor> neighbors)
+    {
+        var hits = new List<SearchHit>(neighbors.Count);
+        foreach (var neighbor in neighbors)
+        {
+            var detail = GetItem(neighbor.ItemId);
+            if (detail is null)
+            {
+                continue;
+            }
+
+            hits.Add(new SearchHit { Item = detail.Item, Snippet = neighbor.Snippet });
+        }
+
+        return hits;
+    }
+
+    private IReadOnlyList<SearchHit> SearchFts(QueryText text, int limit)
+    {
+        var match = ToMatchQuery(text.Value);
         if (match is null)
         {
-            return ListItems(limit).Select(item => new SearchHit { Item = item }).ToArray();
+            return [];
         }
 
         using var connection = _database.Open();
@@ -133,6 +174,12 @@ public sealed class LibraryRepository
 
         return hits;
     }
+
+    private IReadOnlyList<SearchHit> ListAsHits(int limit) =>
+        ListItems(limit).Select(item => new SearchHit { Item = item }).ToArray();
+
+    private static int Clamp(int limit) =>
+        limit < 1 ? 1 : limit > 200 ? 200 : limit;
 
     public IReadOnlyList<ItemRecord> ListFileItemsBySource(string sourceId)
     {

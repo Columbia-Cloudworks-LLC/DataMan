@@ -125,6 +125,9 @@ CREATE INDEX IF NOT EXISTS idx_items_parent ON items(parent_item_id);
 CREATE INDEX IF NOT EXISTS idx_items_hash ON items(original_hash);
 CREATE INDEX IF NOT EXISTS idx_contents_item ON contents(item_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_item ON chunks(item_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_content ON chunks(content_id);
+CREATE INDEX IF NOT EXISTS idx_embeddings_chunk ON embeddings(chunk_id);
+CREATE INDEX IF NOT EXISTS idx_embeddings_model ON embeddings(model);
 CREATE INDEX IF NOT EXISTS idx_relationships_from ON relationships(from_item_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_to ON relationships(to_item_id);
 

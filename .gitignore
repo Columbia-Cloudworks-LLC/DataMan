@@ -9,5 +9,6 @@ artifacts/
 AppPackages/
 BundleArtifacts/
 .cursor/hooks/state/
+*.onnx
 scripts/brand/node_modules/
 *.assets.cache

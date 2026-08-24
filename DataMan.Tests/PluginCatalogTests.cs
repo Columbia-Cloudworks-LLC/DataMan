@@ -1,5 +1,7 @@
 using System.Runtime.CompilerServices;
+using DataMan.Contracts;
 using DataMan.Core.Hosting;
+using DataMan.Core.Search;
 using DataMan.Core.Ingestion;
 using DataMan.Core.Plugins;
 using DataMan.Core.Plugins.Internal;
@@ -149,6 +151,7 @@ public sealed class PluginCatalogTests : IDisposable
         await using var services = new ServiceCollection()
             .AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning))
             .AddDataManCore(dbPath, plugins)
+            .AddSingleton<ITextEmbedder, DeterministicEmbedder>()
             .BuildServiceProvider();
 
         services.GetRequiredService<AppDatabase>().Initialize();
@@ -163,7 +166,9 @@ public sealed class PluginCatalogTests : IDisposable
 
         Assert.Equal(1, result.Accepted);
         Assert.Equal(0, result.Failed);
-        var hits = services.GetRequiredService<LibraryRepository>().Search("quokka");
+        var hits = Assert.IsType<SearchOutcome.Hits>(
+            services.GetRequiredService<LibraryRepository>()
+                .Search(new LibraryQuery.Lexical(QueryText.Parse("quokka")))).Items;
         Assert.Single(hits);
         Assert.Equal("rows.csv", hits[0].Item.Title);
         Assert.Equal("csv", hits[0].Item.Subtype);
@@ -176,6 +181,7 @@ public sealed class PluginCatalogTests : IDisposable
         await using var services = new ServiceCollection()
             .AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning))
             .AddDataManCore(dbPath)
+            .AddSingleton<ITextEmbedder, DeterministicEmbedder>()
             .BuildServiceProvider();
 
         services.GetRequiredService<AppDatabase>().Initialize();
@@ -198,6 +204,7 @@ public sealed class PluginCatalogTests : IDisposable
         await using var services = new ServiceCollection()
             .AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning))
             .AddDataManCore(dbPath, plugins)
+            .AddSingleton<ITextEmbedder, DeterministicEmbedder>()
             .BuildServiceProvider();
 
         services.GetRequiredService<AppDatabase>().Initialize();

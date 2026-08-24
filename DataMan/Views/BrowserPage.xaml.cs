@@ -7,6 +7,8 @@ namespace DataMan.Views;
 
 public sealed partial class BrowserPage : Page
 {
+    private BrowserKind _kind = BrowserKind.Text;
+
     public BrowserPage()
     {
         InitializeComponent();
@@ -24,10 +26,16 @@ public sealed partial class BrowserPage : Page
 
     private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
-        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput && _kind is BrowserKind.Text)
         {
             Reload(sender.Text);
         }
+    }
+
+    private void SearchKindBar_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    {
+        _kind = sender.SelectedItem == MeaningKindItem ? BrowserKind.Meaning : BrowserKind.Text;
+        Reload(SearchBox.Text);
     }
 
     private void ItemList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -38,21 +46,58 @@ public sealed partial class BrowserPage : Page
         }
     }
 
-    private void Reload(string? query)
+    private void Reload(string? box)
     {
         var library = App.Services.GetRequiredService<LibraryRepository>();
-        var hits = library.Search(query ?? string.Empty);
-        ItemList.ItemsSource = hits.Select(hit => new ItemRow(
-            hit.Item.ItemId,
-            hit.Item.Title,
-            hit.Snippet ?? FileLocator.Parse(hit.Item.LocatorJson).Path)).ToArray();
+        var query = BuildQuery(box, _kind);
+        var outcome = library.Search(query);
 
-        if (hits.Count == 0)
+        switch (outcome)
         {
-            DetailTitle.Text = string.IsNullOrWhiteSpace(query) ? "Nothing ingested yet" : "No matches";
-            DetailMeta.Text = string.Empty;
-            DetailBody.Text = string.Empty;
+            case SearchOutcome.Hits hits:
+                ItemList.ItemsSource = hits.Items.Select(hit => new ItemRow(
+                    hit.Item.ItemId,
+                    hit.Item.Title,
+                    hit.Snippet ?? FileLocator.Parse(hit.Item.LocatorJson).Path)).ToArray();
+                if (hits.Items.Count == 0)
+                {
+                    DetailTitle.Text = query is LibraryQuery.Recent
+                        ? "Nothing ingested yet"
+                        : "No matches";
+                    DetailMeta.Text = string.Empty;
+                    DetailBody.Text = string.Empty;
+                }
+
+                break;
+            case SearchOutcome.SemanticUnavailable missing:
+                ItemList.ItemsSource = Array.Empty<ItemRow>();
+                DetailTitle.Text = missing.Gap switch
+                {
+                    SemanticGap.EmbedderMissing => "Semantic model is not installed",
+                    SemanticGap.IndexEmpty => "Nothing has been indexed for meaning yet",
+                    _ => throw new ArgumentOutOfRangeException(nameof(missing.Gap))
+                };
+                DetailMeta.Text = string.Empty;
+                DetailBody.Text = string.Empty;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(outcome));
         }
+    }
+
+    private static LibraryQuery BuildQuery(string? box, BrowserKind kind)
+    {
+        if (!QueryText.TryCreate(box, out var text))
+        {
+            return new LibraryQuery.Recent();
+        }
+
+        return kind switch
+        {
+            BrowserKind.Text => new LibraryQuery.Lexical(text),
+            BrowserKind.Meaning => new LibraryQuery.Semantic(text),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
     }
 
     private void ShowDetail(string itemId)
@@ -69,6 +114,11 @@ public sealed partial class BrowserPage : Page
         DetailBody.Text = detail.Body ?? string.Empty;
     }
 
+    private enum BrowserKind
+    {
+        Text,
+        Meaning
+    }
 }
 
 public sealed record ItemRow(string ItemId, string Title, string Subtitle);

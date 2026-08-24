@@ -1,6 +1,7 @@
 using DataMan.Contracts;
 using DataMan.Core.Ingestion;
 using DataMan.Core.Plugins;
+using DataMan.Core.Search;
 using DataMan.Core.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +15,9 @@ public static class ServiceCollectionExtensions
         string? pluginsDirectory = null)
     {
         services.AddSingleton(new AppDatabase(databasePath));
+        services.AddSingleton<ITextChunker, FixedWindowChunker>();
+        services.AddSingleton<ITextEmbedder, UnavailableEmbedder>();
+        services.AddSingleton<SemanticCorpus>();
         services.AddSingleton<IItemWriter, SqliteItemWriter>();
         services.AddSingleton<LibraryRepository>();
         services.AddSingleton(_ => PluginCatalog.Load(pluginsDirectory, BuiltInIngestionPlugins.CreateAll()));
