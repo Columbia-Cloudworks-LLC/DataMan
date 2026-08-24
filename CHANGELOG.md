@@ -12,7 +12,6 @@ Release Please updates this file when a release pull request is merged to `main`
 
 ### Features
 
-* **plugins:** load contracts-only assemblies from a plugins directory ([beada5f](https://github.com/Columbia-Cloudworks-LLC/DataMan/commit/beada5f7dc7012cfbc5bf0f1fc5ffbe353d535b7))
 * **plugins:** load contracts-only assemblies from a plugins directory ([9c75eb0](https://github.com/Columbia-Cloudworks-LLC/DataMan/commit/9c75eb02d94992480ef7ad8ee5b13e01824b0fce))
 
 
