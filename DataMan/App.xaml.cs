@@ -1,4 +1,5 @@
-﻿using DataMan.Core.Hosting;
+using DataMan.Core.Host;
+using DataMan.Core.Hosting;
 using DataMan.Core.Ingestion;
 using DataMan.Core.Search;
 using DataMan.Core.Storage;
@@ -22,6 +23,8 @@ public partial class App : Application
 
     public static IServiceProvider Services { get; private set; } = null!;
 
+    public static HostAppearance Appearance { get; private set; } = null!;
+
     public static Window? MainWindow { get; private set; }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
@@ -35,6 +38,8 @@ public partial class App : Application
             {
                 monitor.Watch(sourceId, rootPath);
             }
+
+            Appearance = HostAppearance.Open(AppPaths.DataRoot);
 
             _window = new MainWindow();
             MainWindow = _window;

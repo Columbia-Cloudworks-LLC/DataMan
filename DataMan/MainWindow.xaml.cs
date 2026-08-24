@@ -11,6 +11,7 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         BrandInstall.Attach(this);
+        WindowTheme.Bind(this, App.Appearance);
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1200, 800));
         NavView.SelectedItem = NavView.MenuItems[0];
     }
