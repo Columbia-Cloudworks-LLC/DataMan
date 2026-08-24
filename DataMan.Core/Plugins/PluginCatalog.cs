@@ -14,15 +14,31 @@ public static class PluginCatalog
         var unique = Deduplicate(units, issues);
         var index = unique.ToDictionary(unit => unit.Id, StringComparer.Ordinal);
 
+        var referencedByBundle = unique.OfType<BundleUnit>()
+            .SelectMany(bundle => bundle.PluginRefs)
+            .ToHashSet(StringComparer.Ordinal);
+        var resolved = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var bundle in unique.OfType<BundleUnit>())
         {
-            if (BundleFlattener.Flatten(bundle, index) is FlattenCycle cycle)
+            switch (BundleFlattener.Flatten(bundle, index))
             {
-                issues.Add(new CatalogIssue(
-                    CatalogIssueKind.Cycle,
-                    "Bundle graph contains a cycle.",
-                    bundle.ManifestPath,
-                    string.Join(" -> ", cycle.Path)));
+                case FlattenCycle cycle:
+                    issues.Add(new CatalogIssue(
+                        CatalogIssueKind.Cycle,
+                        "Bundle graph contains a cycle.",
+                        bundle.ManifestPath,
+                        string.Join(" -> ", cycle.Path)));
+                    break;
+                case FlattenOk flat:
+                    foreach (var plugin in flat.Plugins)
+                    {
+                        resolved.Add(plugin.Id);
+                    }
+
+                    break;
+                default:
+                    throw new InvalidOperationException("Unexpected flatten result.");
             }
         }
 
@@ -32,6 +48,11 @@ public static class PluginCatalog
         {
             foreach (var plugin in unique.OfType<PluginUnit>().OrderBy(unit => unit.Id, StringComparer.Ordinal))
             {
+                if (referencedByBundle.Contains(plugin.Id) && !resolved.Contains(plugin.Id))
+                {
+                    continue;
+                }
+
                 if (plugin.Dependencies.Length > 0)
                 {
                     issues.Add(new CatalogIssue(

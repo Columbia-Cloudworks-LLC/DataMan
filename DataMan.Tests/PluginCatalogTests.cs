@@ -82,6 +82,36 @@ public sealed class PluginCatalogTests : IDisposable
     }
 
     [Fact]
+    public void Nested_bundle_activates_the_resolved_plugin()
+    {
+        var plugins = Path.Combine(_root, "nested");
+        CopySampleCsv(Path.Combine(plugins, "samplecsv"));
+        WriteBundle(Path.Combine(plugins, "inner"), "inner", ["dataman.plugin.samplecsv"], []);
+        WriteBundle(Path.Combine(plugins, "outer"), "outer", [], ["inner"]);
+
+        var snapshot = PluginCatalog.Load(plugins, BuiltInIngestionPlugins.CreateAll());
+
+        Assert.Contains(snapshot.Plugins, plugin => plugin.Id == "dataman.plugin.samplecsv");
+        Assert.DoesNotContain(snapshot.Issues, issue => issue.Kind == CatalogIssueKind.Cycle);
+        Assert.NotNull(new PluginRegistry(snapshot.Plugins).FindByExtension(".csv"));
+    }
+
+    [Fact]
+    public void Cyclic_bundle_does_not_activate_its_member_plugin()
+    {
+        var plugins = Path.Combine(_root, "cyclic-member");
+        CopySampleCsv(Path.Combine(plugins, "samplecsv"));
+        WriteBundle(Path.Combine(plugins, "a"), "a", ["dataman.plugin.samplecsv"], ["b"]);
+        WriteBundle(Path.Combine(plugins, "b"), "b", [], ["a"]);
+
+        var snapshot = PluginCatalog.Load(plugins, BuiltInIngestionPlugins.CreateAll());
+
+        Assert.DoesNotContain(snapshot.Plugins, plugin => plugin.Id == "dataman.plugin.samplecsv");
+        Assert.Null(new PluginRegistry(snapshot.Plugins).FindByExtension(".csv"));
+        Assert.Contains(snapshot.Issues, issue => issue.Kind == CatalogIssueKind.Cycle);
+    }
+
+    [Fact]
     public async Task Contracts_only_csv_plugin_ingests_through_the_orchestrator()
     {
         var plugins = Path.Combine(_root, "plugins");
@@ -137,7 +167,7 @@ public sealed class PluginCatalogTests : IDisposable
         {
             Directory.Delete(_root, recursive: true);
         }
-        catch (IOException)
+        catch (Exception)
         {
         }
     }
