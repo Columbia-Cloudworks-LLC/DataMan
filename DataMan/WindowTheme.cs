@@ -6,7 +6,7 @@ namespace DataMan;
 
 public static class WindowTheme
 {
-    public static void Bind(Window window, HostAppearance host)
+    public static IDisposable Bind(Window window, HostAppearance host)
     {
         if (window.Content is not FrameworkElement root)
         {
@@ -14,7 +14,14 @@ public static class WindowTheme
         }
 
         Project(root, window.AppWindow, host.Current);
-        host.Changed += appearance => Project(root, window.AppWindow, appearance);
+        Action<Appearance> handler = appearance => Project(root, window.AppWindow, appearance);
+        host.Changed += handler;
+        return new Binding(host, handler);
+    }
+
+    private sealed class Binding(HostAppearance host, Action<Appearance> handler) : IDisposable
+    {
+        public void Dispose() => host.Changed -= handler;
     }
 
     private static void Project(FrameworkElement root, AppWindow appWindow, Appearance appearance)
