@@ -1,5 +1,6 @@
 ﻿using DataMan.Core.Hosting;
 using DataMan.Core.Ingestion;
+using DataMan.Core.Search;
 using DataMan.Core.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -73,6 +74,8 @@ public partial class App : Application
             builder.SetMinimumLevel(LogLevel.Information);
         });
         services.AddDataManCore(AppPaths.DatabasePath, AppPaths.PluginsDirectory);
+        services.AddSingleton<ITextEmbedder>(_ =>
+            OnnxTextEmbedder.TryCreate() ?? (ITextEmbedder)new UnavailableEmbedder());
         return services.BuildServiceProvider();
     }
 }
