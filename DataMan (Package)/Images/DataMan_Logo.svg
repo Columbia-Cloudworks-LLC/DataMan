@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 107 107" width="107" height="107">
+  <defs>
+    <linearGradient id="logoGrad" gradientUnits="userSpaceOnUse" x1="16" y1="22" x2="94" y2="16">
+      <stop offset="0%" stop-color="#3CE66A" />
+      <stop offset="55%" stop-color="#12E0C8" />
+      <stop offset="100%" stop-color="#00D4FF" />
+    </linearGradient>
+  </defs>
+
+  <rect width="107" height="107" fill="#06090E" />
+
+  <g fill="none" stroke="url(#logoGrad)" stroke-width="6.6" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="53.5,13.5 88.143,33.5 88.143,73.5 53.5,93.5 18.857,73.5 18.857,33.5" />
+    <path d="M 36.5 67 L 36.5 39 L 53.5 51 L 71.5 39 L 71.5 69 L 48.5 74 L 48.5 51" />
+  </g>
+</svg>
