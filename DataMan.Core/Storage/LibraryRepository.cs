@@ -95,12 +95,20 @@ public sealed class LibraryRepository
         };
     }
 
-    public IReadOnlyList<SearchHit> Search(string query, int limit = 50)
+    public SearchOutcome Search(LibraryQuery query)
     {
-        var match = ToMatchQuery(query);
+        return query.Match(
+            recent => new SearchOutcome.Hits(ListAsHits(Clamp(recent.Limit))),
+            lexical => new SearchOutcome.Hits(SearchFts(lexical.Text, Clamp(lexical.Limit))),
+            semantic => throw new NotSupportedException("Semantic search is not wired yet."));
+    }
+
+    private IReadOnlyList<SearchHit> SearchFts(QueryText text, int limit)
+    {
+        var match = ToMatchQuery(text.Value);
         if (match is null)
         {
-            return ListItems(limit).Select(item => new SearchHit { Item = item }).ToArray();
+            return [];
         }
 
         using var connection = _database.Open();
@@ -133,6 +141,12 @@ public sealed class LibraryRepository
 
         return hits;
     }
+
+    private IReadOnlyList<SearchHit> ListAsHits(int limit) =>
+        ListItems(limit).Select(item => new SearchHit { Item = item }).ToArray();
+
+    private static int Clamp(int limit) =>
+        limit < 1 ? 1 : limit > 200 ? 200 : limit;
 
     public IReadOnlyList<ItemRecord> ListFileItemsBySource(string sourceId)
     {

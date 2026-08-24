@@ -74,23 +74,31 @@ public sealed class MvpLoopTests : IDisposable
         Assert.Equal(0, result.Failed);
         Assert.Equal(3, _library.GetStats().ItemCount);
 
-        var hits = _library.Search("quokka");
+        var hits = Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Lexical(QueryText.Parse("quokka")))).Items;
         Assert.Single(hits);
         Assert.Equal("alpha.md", hits[0].Item.Title);
         Assert.Equal("markdown", hits[0].Item.Subtype);
         Assert.False(string.IsNullOrWhiteSpace(hits[0].Item.OriginalHash));
 
-        var platypus = _library.Search("platypus");
+        var platypus = Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Lexical(QueryText.Parse("platypus")))).Items;
         Assert.Single(platypus);
         Assert.Equal("readme.txt", platypus[0].Item.Title);
 
-        var wombat = _library.Search("wombat");
+        var wombat = Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Lexical(QueryText.Parse("wombat")))).Items;
         Assert.Single(wombat);
         Assert.Equal("trace.log", wombat[0].Item.Title);
 
-        var prefix = _library.Search("quok");
+        var prefix = Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Lexical(QueryText.Parse("quok")))).Items;
         Assert.Single(prefix);
         Assert.Equal("alpha.md", prefix[0].Item.Title);
+
+        var recent = Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Recent())).Items;
+        Assert.Equal(3, recent.Count);
 
         var detail = _library.GetItem(hits[0].Item.ItemId);
         Assert.NotNull(detail);
@@ -110,8 +118,10 @@ public sealed class MvpLoopTests : IDisposable
 
         Assert.Equal(first.ItemIds, second.ItemIds);
         Assert.Equal(1, _library.GetStats().ItemCount);
-        Assert.Single(_library.Search("bandicoot"));
-        Assert.Empty(_library.Search("first"));
+        Assert.Single(Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Lexical(QueryText.Parse("bandicoot")))).Items);
+        Assert.Empty(Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Lexical(QueryText.Parse("first")))).Items);
     }
 
     [Fact]

@@ -38,21 +38,35 @@ public sealed partial class BrowserPage : Page
         }
     }
 
-    private void Reload(string? query)
+    private void Reload(string? box)
     {
         var library = App.Services.GetRequiredService<LibraryRepository>();
-        var hits = library.Search(query ?? string.Empty);
-        ItemList.ItemsSource = hits.Select(hit => new ItemRow(
+        var query = BuildQuery(box);
+        var outcome = library.Search(query);
+
+        if (outcome is not SearchOutcome.Hits hits)
+        {
+            throw new ArgumentOutOfRangeException(nameof(outcome));
+        }
+
+        ItemList.ItemsSource = hits.Items.Select(hit => new ItemRow(
             hit.Item.ItemId,
             hit.Item.Title,
             hit.Snippet ?? FileLocator.Parse(hit.Item.LocatorJson).Path)).ToArray();
 
-        if (hits.Count == 0)
+        if (hits.Items.Count == 0)
         {
-            DetailTitle.Text = string.IsNullOrWhiteSpace(query) ? "Nothing ingested yet" : "No matches";
+            DetailTitle.Text = query is LibraryQuery.Recent ? "Nothing ingested yet" : "No matches";
             DetailMeta.Text = string.Empty;
             DetailBody.Text = string.Empty;
         }
+    }
+
+    private static LibraryQuery BuildQuery(string? box)
+    {
+        return QueryText.TryCreate(box, out var text)
+            ? new LibraryQuery.Lexical(text)
+            : new LibraryQuery.Recent();
     }
 
     private void ShowDetail(string itemId)

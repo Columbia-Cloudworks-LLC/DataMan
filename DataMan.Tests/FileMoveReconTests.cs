@@ -79,7 +79,8 @@ public sealed class FileMoveReconTests : IDisposable
         Assert.Equal(ItemStatus.Missing, after.Item.Status);
         Assert.Equal(Path.GetFullPath(path), FileLocator.Parse(after.Item.LocatorJson).Path);
         Assert.Equal("searchable numbat remains", after.Body);
-        Assert.Single(_library.Search("numbat"));
+        Assert.Single(Assert.IsType<SearchOutcome.Hits>(
+            _library.Search(new LibraryQuery.Lexical(QueryText.Parse("numbat")))).Items);
         Assert.Equal(1, _library.GetStats().ItemCount);
     }
 
