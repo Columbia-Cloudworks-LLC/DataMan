@@ -9,6 +9,8 @@ namespace DataMan.Desktop.Views;
 
 public sealed partial class DashboardView : UserControl
 {
+    private readonly SemaphoreSlim _ingestionGate = new(1, 1);
+
     public DashboardView()
     {
         InitializeComponent();
@@ -55,7 +57,7 @@ public sealed partial class DashboardView : UserControl
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {
-        e.DragEffects = e.Data.Contains(DataFormats.Files)
+        e.DragEffects = _ingestionGate.CurrentCount > 0 && e.Data.Contains(DataFormats.Files)
             ? DragDropEffects.Copy
             : DragDropEffects.None;
     }
@@ -77,15 +79,23 @@ public sealed partial class DashboardView : UserControl
 
         try
         {
-            var orchestrator = App.Services.GetRequiredService<IngestionOrchestrator>();
-            var result = await orchestrator.IngestPathsAsync(paths);
-            StatusText.Text = $"{result.Accepted} ingested, {result.Skipped} skipped, {result.Failed} failed.";
-            if (result.Errors.Count > 0)
+            await _ingestionGate.WaitAsync();
+            try
             {
-                StatusText.Text += " " + result.Errors[0];
-            }
+                var orchestrator = App.Services.GetRequiredService<IngestionOrchestrator>();
+                var result = await Task.Run(() => orchestrator.IngestPathsAsync(paths));
+                StatusText.Text = $"{result.Accepted} ingested, {result.Skipped} skipped, {result.Failed} failed.";
+                if (result.Errors.Count > 0)
+                {
+                    StatusText.Text += " " + result.Errors[0];
+                }
 
-            LibraryEvents.NotifyChanged();
+                LibraryEvents.NotifyChanged();
+            }
+            finally
+            {
+                _ingestionGate.Release();
+            }
         }
         catch (Exception ex)
         {

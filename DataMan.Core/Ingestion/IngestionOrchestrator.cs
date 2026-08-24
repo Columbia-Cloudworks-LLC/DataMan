@@ -15,6 +15,7 @@ public sealed class IngestionOrchestrator
     private readonly IServiceProvider _services;
     private readonly WatchedRootMonitor _monitor;
     private readonly ILogger<IngestionOrchestrator> _logger;
+    private readonly SemaphoreSlim _batchGate = new(1, 1);
 
     public IngestionOrchestrator(
         LibraryRepository library,
@@ -37,7 +38,23 @@ public sealed class IngestionOrchestrator
         IProgress<IngestionProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var files = ExpandFiles(paths);
+        await _batchGate.WaitAsync(cancellationToken);
+        try
+        {
+            return await IngestPathsCoreAsync(paths, progress, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _batchGate.Release();
+        }
+    }
+
+    private async Task<BatchIngestionResult> IngestPathsCoreAsync(
+        IEnumerable<string> paths,
+        IProgress<IngestionProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        var files = await Task.Run(() => ExpandFiles(paths), cancellationToken).ConfigureAwait(false);
         var itemIds = new List<string>();
         var errors = new List<string>();
         var skipped = 0;
