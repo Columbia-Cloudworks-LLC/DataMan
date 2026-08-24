@@ -1,43 +1,58 @@
 using DataMan.Contracts;
+using DataMan.Core.Search;
 using Microsoft.Data.Sqlite;
 
 namespace DataMan.Core.Storage;
 
+internal readonly record struct ContentCommit(string ContentId, string ItemId, string Body);
+
 public sealed class SqliteItemWriter : IItemWriter
 {
     private readonly AppDatabase _database;
+    private readonly SemanticCorpus _corpus;
 
-    public SqliteItemWriter(AppDatabase database)
+    public SqliteItemWriter(AppDatabase database, SemanticCorpus corpus)
     {
         _database = database;
+        _corpus = corpus;
     }
 
-    public Task<string> UpsertItemAsync(ItemDraft item, ContentDraft? content, CancellationToken cancellationToken)
+    public async Task<string> UpsertItemAsync(ItemDraft item, ContentDraft? content, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var connection = _database.Open();
-        using var transaction = connection.BeginTransaction();
-
-        var existingId = FindItemId(connection, item.SourceId, item.LocatorJson);
-        var itemId = existingId ?? Guid.NewGuid().ToString("D");
-        var now = DateTimeOffset.UtcNow.ToString("O");
-
-        if (existingId is null)
+        ContentCommit? committed = null;
+        string itemId;
+        using (var connection = _database.Open())
+        using (var transaction = connection.BeginTransaction())
         {
-            InsertItem(connection, itemId, item, now);
-        }
-        else
-        {
-            UpdateItem(connection, itemId, item, now);
+            var existingId = FindItemId(connection, item.SourceId, item.LocatorJson);
+            itemId = existingId ?? Guid.NewGuid().ToString("D");
+            var now = DateTimeOffset.UtcNow.ToString("O");
+
+            if (existingId is null)
+            {
+                InsertItem(connection, itemId, item, now);
+            }
+            else
+            {
+                UpdateItem(connection, itemId, item, now);
+            }
+
+            if (content is not null)
+            {
+                committed = UpsertContent(connection, itemId, content, now);
+                _corpus.Invalidate(connection, committed.Value.ContentId);
+            }
+
+            transaction.Commit();
         }
 
-        if (content is not null)
+        if (committed is { } commit)
         {
-            UpsertContent(connection, itemId, content, now);
+            await _corpus.IndexAsync(commit.ContentId, itemId, commit.Body, cancellationToken);
         }
 
-        transaction.Commit();
-        return Task.FromResult(itemId);
+        return itemId;
     }
 
     private static string? FindItemId(SqliteConnection connection, string sourceId, string locatorJson)
@@ -117,7 +132,7 @@ public sealed class SqliteItemWriter : IItemWriter
         command.Parameters.AddWithValue("$status", ItemStatusCodec.ToStorage(item.Status));
     }
 
-    private static void UpsertContent(SqliteConnection connection, string itemId, ContentDraft content, string now)
+    private static ContentCommit UpsertContent(SqliteConnection connection, string itemId, ContentDraft content, string now)
     {
         using var find = connection.CreateCommand();
         find.CommandText = "SELECT content_id, version FROM contents WHERE item_id = $item_id LIMIT 1;";
@@ -162,5 +177,6 @@ public sealed class SqliteItemWriter : IItemWriter
         upsert.Parameters.AddWithValue("$version", version);
         upsert.Parameters.AddWithValue("$created_at", now);
         upsert.ExecuteNonQuery();
+        return new ContentCommit(contentId, itemId, content.Body);
     }
 }

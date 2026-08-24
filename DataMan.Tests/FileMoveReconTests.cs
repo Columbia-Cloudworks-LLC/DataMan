@@ -1,6 +1,7 @@
 using DataMan.Contracts;
 using DataMan.Core.Hosting;
 using DataMan.Core.Ingestion;
+using DataMan.Core.Search;
 using DataMan.Core.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,7 @@ public sealed class FileMoveReconTests : IDisposable
         _services = new ServiceCollection()
             .AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning))
             .AddDataManCore(dbPath)
+            .AddSingleton<ITextEmbedder, DeterministicEmbedder>()
             .BuildServiceProvider();
 
         _services.GetRequiredService<AppDatabase>().Initialize();

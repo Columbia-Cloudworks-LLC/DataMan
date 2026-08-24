@@ -2,6 +2,7 @@ using DataMan.Contracts;
 using Xunit;
 using DataMan.Core.Hosting;
 using DataMan.Core.Ingestion;
+using DataMan.Core.Search;
 using DataMan.Core.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,7 @@ public sealed class MvpLoopTests : IDisposable
         _services = new ServiceCollection()
             .AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning))
             .AddDataManCore(dbPath)
+            .AddSingleton<ITextEmbedder, DeterministicEmbedder>()
             .BuildServiceProvider();
 
         _database = _services.GetRequiredService<AppDatabase>();
@@ -125,7 +127,7 @@ public sealed class MvpLoopTests : IDisposable
     }
 
     [Fact]
-    public async Task Ingest_stores_locator_and_hash_without_embedding_blobs()
+    public async Task Ingest_stores_locator_hash_and_embeddings()
     {
         var file = Path.Combine(_root, "payload.txt");
         await File.WriteAllTextAsync(file, "visible text");
@@ -138,8 +140,24 @@ public sealed class MvpLoopTests : IDisposable
         Assert.Equal(Path.GetFullPath(file), locator.Path);
         Assert.False(string.IsNullOrWhiteSpace(items[0].OriginalHash));
         Assert.Equal(64, items[0].OriginalHash!.Length);
-        Assert.Equal(0, _library.CountEmbeddings());
+        Assert.True(_library.CountEmbeddings() > 0);
         Assert.Equal("visible text", _library.GetItem(items[0].ItemId)!.Body);
+    }
+
+    [Fact]
+    public async Task Reingest_replaces_semantic_index_for_that_path()
+    {
+        var file = Path.Combine(_root, "repeat.md");
+        await File.WriteAllTextAsync(file, "first draft about wombats");
+        await _orchestrator.IngestPathsAsync([file]);
+        var afterFirst = _library.CountEmbeddings();
+        Assert.True(afterFirst > 0);
+
+        await File.WriteAllTextAsync(file, "second draft with bandicoot");
+        await _orchestrator.IngestPathsAsync([file]);
+
+        Assert.Equal(1, _library.GetStats().ItemCount);
+        Assert.Equal(afterFirst, _library.CountEmbeddings());
     }
 
     public void Dispose()
