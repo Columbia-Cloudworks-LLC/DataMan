@@ -19,4 +19,8 @@
   <ItemGroup>
     <ProjectReference Include="..\DataMan.Contracts\DataMan.Contracts.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DataMan.Tests" />
+  </ItemGroup>
 </Project>

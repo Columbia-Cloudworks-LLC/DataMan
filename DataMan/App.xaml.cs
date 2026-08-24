@@ -64,7 +64,7 @@ public partial class App : Application
             builder.AddDebug();
             builder.SetMinimumLevel(LogLevel.Information);
         });
-        services.AddDataManCore(AppPaths.DatabasePath);
+        services.AddDataManCore(AppPaths.DatabasePath, AppPaths.PluginsDirectory);
         return services.BuildServiceProvider();
     }
 }
