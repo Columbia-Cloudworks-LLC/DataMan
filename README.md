@@ -36,7 +36,7 @@ That script runs the ingest and search tests, builds the host, and checks the Cu
 - Contract assembly (`IIngestionPlugin`, `IItemWriter`, locators)
 - SQLite schema from the design doc, including FTS5
 - Built-in plugins for `.txt`, `.md`, and `.log`
-- Directory discovery, collectible `AssemblyLoadContext` load, and nested bundle flatten
+- Directory discovery, collectible `AssemblyLoadContext` load and unload, and nested bundle flatten
 - Dashboard with drag-and-drop and file/folder pickers
 - Browser with list, detail, and full-text search
 - Local file moves and renames on a watched or scanned folder keep the same `item_id` via `original_hash`

@@ -1,4 +1,4 @@
-using DataMan.Core.Ingestion;
+using DataMan.Core.Plugins;
 using DataMan.Core.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
@@ -15,7 +15,7 @@ public sealed partial class SettingsPage : Page
             var stats = App.Services.GetRequiredService<LibraryRepository>().GetStats();
             DatabasePathText.Text = stats.DatabasePath;
             SchemaText.Text = $"Schema version {stats.SchemaVersion} · {stats.ContentCount} extracted documents";
-            PluginList.ItemsSource = App.Services.GetRequiredService<PluginRegistry>().All
+            PluginList.ItemsSource = App.Services.GetRequiredService<PluginCatalog>().Listings
                 .Select(plugin => $"{plugin.DisplayName} ({plugin.Id} {plugin.Version})")
                 .ToArray();
         };

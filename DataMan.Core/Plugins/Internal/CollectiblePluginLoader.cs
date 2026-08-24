@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using DataMan.Contracts;
 
@@ -6,7 +7,7 @@ namespace DataMan.Core.Plugins.Internal;
 
 internal abstract record PluginActivation;
 
-internal sealed record PluginActivationOk(IIngestionPlugin Plugin, AssemblyLoadContext Context) : PluginActivation;
+internal sealed record PluginActivationOk(DiscoveredSlot Slot) : PluginActivation;
 
 internal sealed record PluginActivationFail(string PluginId, CatalogIssue Issue) : PluginActivation;
 
@@ -39,6 +40,7 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
 
 internal static class CollectiblePluginLoader
 {
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static PluginActivation Activate(PluginUnit unit, string pluginsDirectory)
     {
         var pluginFolder = Path.GetDirectoryName(unit.ManifestPath);
@@ -66,22 +68,37 @@ internal static class CollectiblePluginLoader
                 new CatalogIssue(CatalogIssueKind.AssemblyLoadFailed, $"Assembly '{unit.AssemblyRelativePath}' was not found.", unit.ManifestPath));
         }
 
+        PluginLoadContext? context = null;
         try
         {
-            var context = new PluginLoadContext($"dataman-plugin-{unit.Id}", pluginFolder);
+            context = new PluginLoadContext($"dataman-plugin-{unit.Id}", pluginFolder);
+            var contextWeak = new WeakReference(context, trackResurrection: false);
             var assembly = context.LoadFromAssemblyPath(assemblyPath);
             var type = assembly.GetType(unit.EntryType, throwOnError: false);
             if (type is null || Activator.CreateInstance(type) is not IIngestionPlugin plugin)
             {
+                context.Unload();
                 return new PluginActivationFail(
                     unit.Id,
                     new CatalogIssue(CatalogIssueKind.EntryTypeInvalid, $"'{unit.EntryType}' is not an IIngestionPlugin.", unit.ManifestPath));
             }
 
-            return new PluginActivationOk(plugin, context);
+            return new PluginActivationOk(new DiscoveredSlot
+            {
+                Listing = new PluginListing(
+                    plugin.Id,
+                    plugin.DisplayName,
+                    plugin.Version,
+                    [.. plugin.SupportedSchemesOrExtensions],
+                    PluginOrigin.Discovered),
+                Plugin = plugin,
+                Context = context,
+                ContextWeak = contextWeak
+            });
         }
         catch (Exception ex)
         {
+            context?.Unload();
             return new PluginActivationFail(
                 unit.Id,
                 new CatalogIssue(CatalogIssueKind.AssemblyLoadFailed, ex.Message, unit.ManifestPath));

@@ -1,12 +1,33 @@
-using System.Runtime.Loader;
+using System.Runtime.CompilerServices;
 using DataMan.Contracts;
 using DataMan.Core.Plugins.Internal;
 
 namespace DataMan.Core.Plugins;
 
-public static class PluginCatalog
+public sealed class PluginCatalog : IDisposable
 {
-    public static CatalogSnapshot Load(string? pluginsDirectory, IEnumerable<IIngestionPlugin> builtIns)
+    private readonly IIngestionPlugin[] _builtIns;
+    private readonly PluginListing[] _builtInListings;
+    private readonly IReadOnlyList<CatalogIssue> _issues;
+    private DiscoveredSlot[]? _live;
+
+    private CatalogRelease _release;
+    private bool _released;
+
+    internal PluginCatalog(
+        IIngestionPlugin[] builtIns,
+        DiscoveredSlot[] discovered,
+        IReadOnlyList<CatalogIssue> issues)
+    {
+        _builtIns = builtIns;
+        _builtInListings = [.. builtIns.Select(ToBuiltInListing)];
+        _live = discovered;
+        _issues = issues;
+    }
+
+    // NoInlining so activation locals cannot remain on a caller that later Releases.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static PluginCatalog Load(string? pluginsDirectory, IEnumerable<IIngestionPlugin> builtIns)
     {
         var builtInList = builtIns.ToArray();
         var (units, scanIssues) = ManifestDirectory.ReadAll(pluginsDirectory);
@@ -42,8 +63,7 @@ public static class PluginCatalog
             }
         }
 
-        var contexts = new List<AssemblyLoadContext>();
-        var discovered = new List<IIngestionPlugin>();
+        var slots = new List<DiscoveredSlot>();
         if (!string.IsNullOrWhiteSpace(pluginsDirectory))
         {
             foreach (var plugin in unique.OfType<PluginUnit>().OrderBy(unit => unit.Id, StringComparer.Ordinal))
@@ -65,8 +85,7 @@ public static class PluginCatalog
                 switch (CollectiblePluginLoader.Activate(plugin, pluginsDirectory))
                 {
                     case PluginActivationOk ok:
-                        discovered.Add(ok.Plugin);
-                        contexts.Add(ok.Context);
+                        slots.Add(ok.Slot);
                         break;
                     case PluginActivationFail fail:
                         issues.Add(fail.Issue);
@@ -77,11 +96,113 @@ public static class PluginCatalog
             }
         }
 
-        var merged = new List<IIngestionPlugin>(builtInList.Length + discovered.Count);
-        merged.AddRange(builtInList);
-        merged.AddRange(discovered);
-        return new CatalogSnapshot(merged, issues, contexts);
+        return new PluginCatalog(builtInList, [.. slots], issues);
     }
+
+    public IReadOnlyList<PluginListing> Listings
+    {
+        get
+        {
+            var live = Volatile.Read(ref _live);
+            if (live is null || live.Length == 0)
+            {
+                return _builtInListings;
+            }
+
+            var rows = new PluginListing[_builtInListings.Length + live.Length];
+            _builtInListings.CopyTo(rows, 0);
+            for (var i = 0; i < live.Length; i++)
+            {
+                rows[_builtInListings.Length + i] = live[i].Listing;
+            }
+
+            return rows;
+        }
+    }
+
+    public IReadOnlyList<CatalogIssue> Issues => _issues;
+
+    internal int RetainedContextCount => Volatile.Read(ref _live)?.Length ?? 0;
+
+    public IIngestionPlugin? FindByExtension(string extension)
+    {
+        foreach (var plugin in _builtIns)
+        {
+            if (MatchesExtension(plugin, extension))
+            {
+                return plugin;
+            }
+        }
+
+        var live = Volatile.Read(ref _live);
+        if (live is null)
+        {
+            return null;
+        }
+
+        foreach (var slot in live)
+        {
+            if (MatchesExtension(slot.Plugin, extension))
+            {
+                return slot.Plugin;
+            }
+        }
+
+        return null;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public CatalogRelease Release()
+    {
+        return ProveCollection(DetachLive());
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private WeakReference[]? DetachLive()
+    {
+        return CollectibleContextUnloader.UnloadAndDrop(Interlocked.Exchange(ref _live, null));
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private CatalogRelease ProveCollection(WeakReference[]? weaks)
+    {
+        if (weaks is null)
+        {
+            return _released ? _release : new CatalogRelease(true, 0, 0);
+        }
+
+        if (weaks.Length == 0)
+        {
+            _release = new CatalogRelease(true, 0, 0);
+            _released = true;
+            return _release;
+        }
+
+        var collected = CollectibleContextUnloader.CollectUntilDead(weaks);
+        var alive = 0;
+        foreach (var weak in weaks)
+        {
+            if (weak.IsAlive)
+            {
+                alive++;
+            }
+        }
+
+        _release = new CatalogRelease(collected, weaks.Length, alive);
+        _released = true;
+        return _release;
+    }
+
+    public void Dispose()
+    {
+        Release();
+    }
+
+    private static PluginListing ToBuiltInListing(IIngestionPlugin plugin) =>
+        new(plugin.Id, plugin.DisplayName, plugin.Version, [.. plugin.SupportedSchemesOrExtensions], PluginOrigin.BuiltIn);
+
+    private static bool MatchesExtension(IIngestionPlugin plugin, string extension) =>
+        plugin.SupportedSchemesOrExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
 
     private static List<ManifestUnit> Deduplicate(IReadOnlyList<ManifestUnit> units, List<CatalogIssue> issues)
     {

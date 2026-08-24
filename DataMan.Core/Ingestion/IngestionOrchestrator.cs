@@ -1,4 +1,5 @@
 using DataMan.Contracts;
+using DataMan.Core.Plugins;
 using DataMan.Core.Storage;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +11,7 @@ public sealed class IngestionOrchestrator
 
     private readonly LibraryRepository _library;
     private readonly IItemWriter _writer;
-    private readonly PluginRegistry _plugins;
+    private readonly PluginCatalog _plugins;
     private readonly IServiceProvider _services;
     private readonly WatchedRootMonitor _monitor;
     private readonly ILogger<IngestionOrchestrator> _logger;
@@ -18,7 +19,7 @@ public sealed class IngestionOrchestrator
     public IngestionOrchestrator(
         LibraryRepository library,
         IItemWriter writer,
-        PluginRegistry plugins,
+        PluginCatalog plugins,
         IServiceProvider services,
         WatchedRootMonitor monitor,
         ILogger<IngestionOrchestrator> logger)
