@@ -103,10 +103,50 @@ public sealed class SourceReconciler
         HashSet<string> liveHashes,
         CancellationToken cancellationToken)
     {
+        var libraryByHash = new Dictionary<string, List<ItemRecord>>(StringComparer.Ordinal);
+        foreach (var item in unmatchedLibrary)
+        {
+            if (string.IsNullOrWhiteSpace(item.OriginalHash))
+            {
+                continue;
+            }
+
+            if (!libraryByHash.TryGetValue(item.OriginalHash, out var items))
+            {
+                items = [];
+                libraryByHash[item.OriginalHash] = items;
+            }
+
+            items.Add(item);
+        }
+
+        if (libraryByHash.Count == 0)
+        {
+            return [];
+        }
+
+        var expectedSizes = unmatchedLibrary
+            .Where(item => !string.IsNullOrWhiteSpace(item.OriginalHash))
+            .Where(item => item.SizeBytes.HasValue)
+            .Select(item => item.SizeBytes!.Value)
+            .ToHashSet();
         var diskByHash = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         foreach (var path in unmatchedDisk)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                if (!expectedSizes.Contains(new FileInfo(path).Length))
+                {
+                    continue;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogWarning(ex, "Unable to inspect {Path} during reconcile.", path);
+                continue;
+            }
+
             string hash;
             try
             {
@@ -125,23 +165,6 @@ public sealed class SourceReconciler
             }
 
             paths.Add(path);
-        }
-
-        var libraryByHash = new Dictionary<string, List<ItemRecord>>(StringComparer.Ordinal);
-        foreach (var item in unmatchedLibrary)
-        {
-            if (string.IsNullOrWhiteSpace(item.OriginalHash))
-            {
-                continue;
-            }
-
-            if (!libraryByHash.TryGetValue(item.OriginalHash, out var items))
-            {
-                items = [];
-                libraryByHash[item.OriginalHash] = items;
-            }
-
-            items.Add(item);
         }
 
         var rematched = new HashSet<string>(StringComparer.Ordinal);
@@ -189,9 +212,26 @@ public sealed class SourceReconciler
             return paths;
         }
 
-        foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        try
         {
-            paths.Add(Path.GetFullPath(file));
+            var options = new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true,
+                ReturnSpecialDirectories = false
+            };
+            foreach (var file in Directory.EnumerateFiles(root, "*", options))
+            {
+                paths.Add(Path.GetFullPath(file));
+            }
+        }
+        catch (IOException)
+        {
+            // Preserve files discovered before a transient or invalid subtree failed.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Skip inaccessible portions of the root.
         }
 
         return paths;
