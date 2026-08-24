@@ -16,3 +16,13 @@ jobs:
       - name: Verify
         shell: pwsh
         run: .\scripts\verify-ship.ps1
+
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Verify (Linux)
+        run: ./scripts/verify-linux.sh
