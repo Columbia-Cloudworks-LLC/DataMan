@@ -1,3 +1,4 @@
+using DataMan.Brand;
 using DataMan.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -9,6 +10,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        BrandInstall.Attach(this);
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1200, 800));
         NavView.SelectedItem = NavView.MenuItems[0];
     }

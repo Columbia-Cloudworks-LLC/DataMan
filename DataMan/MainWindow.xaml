@@ -15,6 +15,14 @@
         IsBackButtonVisible="Collapsed"
         PaneDisplayMode="Left"
         SelectionChanged="NavView_SelectionChanged">
+        <NavigationView.PaneHeader>
+            <Image
+                Source="ms-appx:///Assets/Brand/Mark.png"
+                Width="28"
+                Height="28"
+                Margin="12,8,0,8"
+                Stretch="Uniform" />
+        </NavigationView.PaneHeader>
         <NavigationView.MenuItems>
             <NavigationViewItem Content="Dashboard" Tag="dashboard">
                 <NavigationViewItem.Icon>

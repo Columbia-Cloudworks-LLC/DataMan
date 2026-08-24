@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>DataMan logo compare</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Segoe UI, system-ui, sans-serif;
+      background: #0b1016;
+      color: #d7e0ea;
+      padding: 16px 20px 32px;
+    }
+    h1 { font-size: 18px; font-weight: 600; margin: 0 0 12px; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    figure { margin: 0; }
+    figcaption {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #8b9aab;
+      margin-bottom: 8px;
+    }
+    .frame {
+      width: 321px;
+      height: 321px;
+      background: #06090E;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .frame img, .frame canvas {
+      display: block;
+      width: 321px;
+      height: 321px;
+    }
+  </style>
+</head>
+<body>
+  <h1>DataMan logo — draft vs vector</h1>
+  <div class="toolbar">
+    <label>SVG opacity <input id="opacity" type="range" min="0" max="100" value="50" /></label>
+    <label><input id="diff" type="checkbox" checked /> difference view</label>
+    <span id="status"></span>
+  </div>
+  <div class="row">
+    <figure>
+      <figcaption>Draft JPG (3× nearest)</figcaption>
+      <div class="frame"><img id="draft" src="DataMan_Logo_draft.jpg" alt="draft" /></div>
+    </figure>
+    <figure>
+      <figcaption>Vector SVG</figcaption>
+      <div class="frame"><img id="vector" src="DataMan_Logo.svg?v=14" alt="svg" /></div>
+    </figure>
+    <figure>
+      <figcaption>Overlay / difference</figcaption>
+      <div class="frame">
+        <canvas id="compare" width="321" height="321"></canvas>
+      </div>
+    </figure>
+  </div>
+  <script>
+    const draft = document.getElementById("draft");
+    const vector = document.getElementById("vector");
+    const canvas = document.getElementById("compare");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const opacity = document.getElementById("opacity");
+    const diff = document.getElementById("diff");
+    const status = document.getElementById("status");
+
+    function load(img) {
+      return new Promise((resolve) => {
+        if (img.complete && img.naturalWidth) resolve();
+        else img.addEventListener("load", () => resolve(), { once: true });
+      });
+    }
+
+    async function paint() {
+      await Promise.all([load(draft), load(vector)]);
+      const w = 321, h = 321;
+      ctx.clearRect(0, 0, w, h);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(draft, 0, 0, w, h);
+      const a = parseInt(opacity.value, 10) / 100;
+      if (diff.checked) {
+        const base = ctx.getImageData(0, 0, w, h);
+        ctx.globalAlpha = 1;
+        ctx.drawImage(vector, 0, 0, w, h);
+        const over = ctx.getImageData(0, 0, w, h);
+        const out = ctx.createImageData(w, h);
+        let mismatch = 0;
+        for (let i = 0; i < base.data.length; i += 4) {
+          const db = base.data[i] + base.data[i + 1] + base.data[i + 2];
+          const dv = over.data[i] + over.data[i + 1] + over.data[i + 2];
+          const draftOn = db > 90;
+          const svgOn = dv > 90;
+          if (draftOn && svgOn) {
+            out.data[i] = 40; out.data[i + 1] = 180; out.data[i + 2] = 90; out.data[i + 3] = 255;
+          } else if (draftOn && !svgOn) {
+            out.data[i] = 255; out.data[i + 1] = 60; out.data[i + 2] = 80; out.data[i + 3] = 255;
+            mismatch++;
+          } else if (!draftOn && svgOn) {
+            out.data[i] = 70; out.data[i + 1] = 140; out.data[i + 2] = 255; out.data[i + 3] = 255;
+            mismatch++;
+          } else {
+            out.data[i] = 6; out.data[i + 1] = 9; out.data[i + 2] = 14; out.data[i + 3] = 255;
+          }
+        }
+        ctx.putImageData(out, 0, 0);
+        status.textContent = `red = draft only · blue = SVG only · green = overlap · mismatch ${mismatch} px`;
+      } else {
+        ctx.globalAlpha = a;
+        ctx.drawImage(vector, 0, 0, w, h);
+        ctx.globalAlpha = 1;
+        status.textContent = `overlay ${Math.round(a * 100)}%`;
+      }
+    }
+
+    opacity.addEventListener("input", paint);
+    diff.addEventListener("change", paint);
+    paint();
+  </script>
+</body>
+</html>
