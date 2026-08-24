@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="DataMan.Desktop.Views.DashboardView"
+             DragDrop.AllowDrop="True">
+    <Grid Margin="32" RowSpacing="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="Dashboard" FontSize="28" FontWeight="SemiBold" />
+            <TextBlock Text="Drop a folder of .txt, .md, or .log files. DataMan stores locators and extracted text, not the original files."
+                       TextWrapping="Wrap"
+                       Opacity="0.75" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    CornerRadius="8"
+                    Padding="16">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Items" Opacity="0.7" />
+                    <TextBlock x:Name="ItemCountText" Text="0" FontSize="20" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1"
+                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    CornerRadius="8"
+                    Padding="16">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Sources" Opacity="0.7" />
+                    <TextBlock x:Name="SourceCountText" Text="0" FontSize="20" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2"
+                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    CornerRadius="8"
+                    Padding="16">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Database" Opacity="0.7" />
+                    <TextBlock x:Name="DatabaseSizeText" Text="0 B" FontSize="20" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" RowSpacing="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="IngestFilesButton" Content="Ingest files" Click="IngestFiles_Click" />
+                <Button x:Name="IngestFolderButton" Content="Ingest folder" Click="IngestFolder_Click" />
+            </StackPanel>
+            <Border Grid.Row="1"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="24"
+                    DragDrop.AllowDrop="True">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+                    <PathIcon Width="32" Height="32" Opacity="0.6" Data="{StaticResource DropIcon}" />
+                    <TextBlock x:Name="StatusText" Text="Drop files or a folder here" HorizontalAlignment="Center" />
+                    <ProgressBar x:Name="IngestProgress" Width="280" IsVisible="False" IsIndeterminate="True" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
