@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using DataMan.Core.Hosting;
 using DataMan.Core.Ingestion;
 using DataMan.Core.Plugins;
@@ -22,14 +23,14 @@ public sealed class PluginCatalogTests : IDisposable
     public void Missing_directory_yields_built_ins_only()
     {
         var missing = Path.Combine(_root, "does-not-exist");
-        var first = PluginCatalog.Load(missing, BuiltInIngestionPlugins.CreateAll());
-        var second = PluginCatalog.Load(missing, BuiltInIngestionPlugins.CreateAll());
+        using var first = PluginCatalog.Load(missing, BuiltInIngestionPlugins.CreateAll());
+        using var second = PluginCatalog.Load(missing, BuiltInIngestionPlugins.CreateAll());
 
-        Assert.Equal(3, first.Plugins.Count);
+        Assert.Equal(3, first.Listings.Count);
         Assert.Empty(first.Issues);
-        Assert.NotNull(new PluginRegistry(first.Plugins).FindByExtension(".md"));
-        Assert.Null(new PluginRegistry(first.Plugins).FindByExtension(".csv"));
-        Assert.Equal(first.Plugins.Select(plugin => plugin.Id), second.Plugins.Select(plugin => plugin.Id));
+        Assert.NotNull(first.FindByExtension(".md"));
+        Assert.Null(first.FindByExtension(".csv"));
+        Assert.Equal(first.Listings.Select(plugin => plugin.Id), second.Listings.Select(plugin => plugin.Id));
     }
 
     [Fact]
@@ -51,11 +52,11 @@ public sealed class PluginCatalogTests : IDisposable
             """);
 
         using var hold = new FileStream(manifest, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-        var snapshot = PluginCatalog.Load(plugins, BuiltInIngestionPlugins.CreateAll());
+        using var catalog = PluginCatalog.Load(plugins, BuiltInIngestionPlugins.CreateAll());
 
-        Assert.Equal(3, snapshot.Plugins.Count);
+        Assert.Equal(3, catalog.Listings.Count);
         Assert.Contains(
-            snapshot.Issues,
+            catalog.Issues,
             issue => issue.Kind == CatalogIssueKind.InvalidManifest && issue.Path == manifest);
     }
 
@@ -100,10 +101,10 @@ public sealed class PluginCatalogTests : IDisposable
         WriteBundle(Path.Combine(_root, "plugins", "a"), "a", [], ["b"]);
         WriteBundle(Path.Combine(_root, "plugins", "b"), "b", [], ["a"]);
 
-        var snapshot = PluginCatalog.Load(Path.Combine(_root, "plugins"), BuiltInIngestionPlugins.CreateAll());
+        using var catalog = PluginCatalog.Load(Path.Combine(_root, "plugins"), BuiltInIngestionPlugins.CreateAll());
 
-        Assert.Equal(3, snapshot.Plugins.Count);
-        var cycles = snapshot.Issues.Where(issue => issue.Kind == CatalogIssueKind.Cycle).ToArray();
+        Assert.Equal(3, catalog.Listings.Count);
+        var cycles = catalog.Issues.Where(issue => issue.Kind == CatalogIssueKind.Cycle).ToArray();
         Assert.NotEmpty(cycles);
         Assert.All(cycles, issue => Assert.False(string.IsNullOrWhiteSpace(issue.Detail)));
     }
@@ -116,11 +117,11 @@ public sealed class PluginCatalogTests : IDisposable
         WriteBundle(Path.Combine(plugins, "inner"), "inner", ["dataman.plugin.samplecsv"], []);
         WriteBundle(Path.Combine(plugins, "outer"), "outer", [], ["inner"]);
 
-        var snapshot = PluginCatalog.Load(plugins, BuiltInIngestionPlugins.CreateAll());
+        using var catalog = PluginCatalog.Load(plugins, BuiltInIngestionPlugins.CreateAll());
 
-        Assert.Contains(snapshot.Plugins, plugin => plugin.Id == "dataman.plugin.samplecsv");
-        Assert.DoesNotContain(snapshot.Issues, issue => issue.Kind == CatalogIssueKind.Cycle);
-        Assert.NotNull(new PluginRegistry(snapshot.Plugins).FindByExtension(".csv"));
+        Assert.Contains(catalog.Listings, plugin => plugin.Id == "dataman.plugin.samplecsv");
+        Assert.DoesNotContain(catalog.Issues, issue => issue.Kind == CatalogIssueKind.Cycle);
+        Assert.NotNull(catalog.FindByExtension(".csv"));
     }
 
     [Fact]
@@ -131,11 +132,11 @@ public sealed class PluginCatalogTests : IDisposable
         WriteBundle(Path.Combine(plugins, "a"), "a", ["dataman.plugin.samplecsv"], ["b"]);
         WriteBundle(Path.Combine(plugins, "b"), "b", [], ["a"]);
 
-        var snapshot = PluginCatalog.Load(plugins, BuiltInIngestionPlugins.CreateAll());
+        using var catalog = PluginCatalog.Load(plugins, BuiltInIngestionPlugins.CreateAll());
 
-        Assert.DoesNotContain(snapshot.Plugins, plugin => plugin.Id == "dataman.plugin.samplecsv");
-        Assert.Null(new PluginRegistry(snapshot.Plugins).FindByExtension(".csv"));
-        Assert.Contains(snapshot.Issues, issue => issue.Kind == CatalogIssueKind.Cycle);
+        Assert.DoesNotContain(catalog.Listings, plugin => plugin.Id == "dataman.plugin.samplecsv");
+        Assert.Null(catalog.FindByExtension(".csv"));
+        Assert.Contains(catalog.Issues, issue => issue.Kind == CatalogIssueKind.Cycle);
     }
 
     [Fact]
@@ -151,11 +152,10 @@ public sealed class PluginCatalogTests : IDisposable
             .BuildServiceProvider();
 
         services.GetRequiredService<AppDatabase>().Initialize();
-        var snapshot = services.GetRequiredService<CatalogSnapshot>();
-        Assert.True(snapshot.RetainedContextCount >= 1);
-        var registry = services.GetRequiredService<PluginRegistry>();
-        Assert.NotNull(registry.FindByExtension(".csv"));
-        Assert.Contains(registry.All, plugin => plugin.Id == "dataman.plugin.samplecsv");
+        var catalog = services.GetRequiredService<PluginCatalog>();
+        Assert.True(catalog.RetainedContextCount >= 1);
+        Assert.NotNull(catalog.FindByExtension(".csv"));
+        Assert.Contains(catalog.Listings, plugin => plugin.Id == "dataman.plugin.samplecsv");
 
         var csv = Path.Combine(_root, "rows.csv");
         await File.WriteAllTextAsync(csv, "animal,note\nquokka,forages at dusk\n");
@@ -185,7 +185,63 @@ public sealed class PluginCatalogTests : IDisposable
 
         Assert.Equal(0, result.Accepted);
         Assert.True(result.Skipped >= 1);
-        Assert.Null(services.GetRequiredService<PluginRegistry>().FindByExtension(".csv"));
+        Assert.Null(services.GetRequiredService<PluginCatalog>().FindByExtension(".csv"));
+    }
+
+    [Fact]
+    public async Task Discovered_plugin_unloads_and_stops_resolving()
+    {
+        var plugins = Path.Combine(_root, "plugins");
+        CopySampleCsv(Path.Combine(plugins, "samplecsv"));
+        var dbPath = Path.Combine(_root, "unload.db");
+
+        await using var services = new ServiceCollection()
+            .AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning))
+            .AddDataManCore(dbPath, plugins)
+            .BuildServiceProvider();
+
+        services.GetRequiredService<AppDatabase>().Initialize();
+        var catalog = services.GetRequiredService<PluginCatalog>();
+
+        AssertDiscoveredCsvIsLive(catalog);
+
+        var csv = Path.Combine(_root, "rows.csv");
+        await File.WriteAllTextAsync(csv, "animal,note\nquokka,forages at dusk\n");
+        Assert.Equal(1, IngestAccepted(services, csv));
+
+        var released = catalog.Release();
+        Assert.True(released.ContextsCollected);
+        Assert.Equal(0, released.AliveContextCount);
+        Assert.True(released.UnloadedContextCount >= 1);
+        Assert.Equal(0, catalog.RetainedContextCount);
+        Assert.Null(catalog.FindByExtension(".csv"));
+        Assert.NotNull(catalog.FindByExtension(".md"));
+        Assert.DoesNotContain(catalog.Listings, row => row.Origin == PluginOrigin.Discovered);
+
+        var again = catalog.Release();
+        Assert.True(again.ContextsCollected);
+        Assert.Equal(released.UnloadedContextCount, again.UnloadedContextCount);
+    }
+
+    [Fact]
+    public void Built_ins_survive_release_when_nothing_was_discovered()
+    {
+        var missing = Path.Combine(_root, "does-not-exist");
+        using var catalog = PluginCatalog.Load(missing, BuiltInIngestionPlugins.CreateAll());
+
+        Assert.Equal(3, catalog.Listings.Count);
+        Assert.All(catalog.Listings, row => Assert.Equal(PluginOrigin.BuiltIn, row.Origin));
+        Assert.Equal(0, catalog.RetainedContextCount);
+        Assert.NotNull(catalog.FindByExtension(".md"));
+        Assert.Null(catalog.FindByExtension(".csv"));
+
+        var released = catalog.Release();
+        Assert.True(released.ContextsCollected);
+        Assert.Equal(0, released.UnloadedContextCount);
+        Assert.NotNull(catalog.FindByExtension(".md"));
+        Assert.Equal(3, catalog.Listings.Count);
+
+        Assert.True(catalog.Release().ContextsCollected);
     }
 
     public void Dispose()
@@ -197,6 +253,21 @@ public sealed class PluginCatalogTests : IDisposable
         catch (Exception)
         {
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void AssertDiscoveredCsvIsLive(PluginCatalog catalog)
+    {
+        Assert.Contains(catalog.Listings, row => row.Id == "dataman.plugin.samplecsv");
+        Assert.Equal(PluginOrigin.Discovered, catalog.Listings.Single(row => row.Id == "dataman.plugin.samplecsv").Origin);
+        Assert.True(catalog.RetainedContextCount >= 1);
+        Assert.NotNull(catalog.FindByExtension(".csv"));
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int IngestAccepted(ServiceProvider services, string csv)
+    {
+        return services.GetRequiredService<IngestionOrchestrator>().IngestPathsAsync([csv]).GetAwaiter().GetResult().Accepted;
     }
 
     private static void WriteBundle(string folder, string id, string[] plugins, string[] bundles)
