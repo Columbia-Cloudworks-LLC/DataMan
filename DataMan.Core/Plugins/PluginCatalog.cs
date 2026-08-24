@@ -10,7 +10,9 @@ public sealed class PluginCatalog : IDisposable
     private readonly PluginListing[] _builtInListings;
     private readonly IReadOnlyList<CatalogIssue> _issues;
     private DiscoveredSlot[]? _live;
+
     private CatalogRelease _release;
+    private bool _released;
 
     internal PluginCatalog(
         IIngestionPlugin[] builtIns,
@@ -20,7 +22,7 @@ public sealed class PluginCatalog : IDisposable
         _builtIns = builtIns;
         _builtInListings = [.. builtIns.Select(ToBuiltInListing)];
         _live = discovered;
-        _issues = issues;
+        _issues = [.. issues];
     }
 
     // NoInlining so activation locals cannot remain on a caller that later Releases.
@@ -104,7 +106,7 @@ public sealed class PluginCatalog : IDisposable
             var live = Volatile.Read(ref _live);
             if (live is null || live.Length == 0)
             {
-                return _builtInListings;
+                return [.. _builtInListings];
             }
 
             var rows = new PluginListing[_builtInListings.Length + live.Length];
@@ -118,7 +120,7 @@ public sealed class PluginCatalog : IDisposable
         }
     }
 
-    public IReadOnlyList<CatalogIssue> Issues => _issues;
+    public IReadOnlyList<CatalogIssue> Issues => [.. _issues];
 
     internal int RetainedContextCount => Volatile.Read(ref _live)?.Length ?? 0;
 
@@ -166,12 +168,13 @@ public sealed class PluginCatalog : IDisposable
     {
         if (weaks is null)
         {
-            return _release;
+            return _released ? _release : new CatalogRelease(true, 0, 0);
         }
 
         if (weaks.Length == 0)
         {
             _release = new CatalogRelease(true, 0, 0);
+            _released = true;
             return _release;
         }
 
@@ -186,6 +189,7 @@ public sealed class PluginCatalog : IDisposable
         }
 
         _release = new CatalogRelease(collected, weaks.Length, alive);
+        _released = true;
         return _release;
     }
 
