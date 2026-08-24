@@ -2,14 +2,15 @@ namespace DataMan.Contracts;
 
 public readonly struct QueryText : IEquatable<QueryText>
 {
-    public string Value { get; }
+    public string Value => _value ?? string.Empty;
+    private readonly string? _value;
 
-    private QueryText(string value) => Value = value;
+    private QueryText(string value) => _value = value;
 
     public static bool TryCreate(string? raw, out QueryText text)
     {
         var trimmed = raw?.Trim();
-        if (string.IsNullOrEmpty(trimmed))
+        if (string.IsNullOrEmpty(trimmed) || !trimmed.Any(char.IsLetterOrDigit))
         {
             text = default;
             return false;
