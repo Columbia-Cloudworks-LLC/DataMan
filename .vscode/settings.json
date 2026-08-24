@@ -1,0 +1,13 @@
+{
+  "dotnet.defaultSolution": "DataMan.slnx",
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/.vs": true
+  },
+  "omnisharp.enableEditorConfigSupport": true,
+  "[csharp]": {
+    "editor.formatOnSave": true
+  },
+  "files.trimTrailingWhitespace": true
+}

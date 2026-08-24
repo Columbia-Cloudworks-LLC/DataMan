@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug DataMan",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/DataMan/bin/x64/Debug/net8.0-windows10.0.19041.0/DataMan.exe",
+      "cwd": "${workspaceFolder}/DataMan/bin/x64/Debug/net8.0-windows10.0.19041.0",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    },
+    {
+      "name": "Attach to DataMan",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    }
+  ]
+}

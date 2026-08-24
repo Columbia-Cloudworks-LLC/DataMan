@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.qodo/
+*.user
+.audit/
+decisions.tsv
+artifacts/
+AppPackages/
+BundleArtifacts/
+.cursor/hooks/state/
+*.assets.cache

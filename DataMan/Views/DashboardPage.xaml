@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="DataMan.Views.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    AllowDrop="True"
+    DragOver="Page_DragOver"
+    Drop="Page_Drop">
+
+    <Grid Padding="32" RowSpacing="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="Dashboard" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock
+                Text="Drop a folder of .txt, .md, or .log files. DataMan stores locators and extracted text, not the original files."
+                TextWrapping="Wrap"
+                Opacity="0.75" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Items" Opacity="0.7" />
+                    <TextBlock x:Name="ItemCountText" Text="0" Style="{StaticResource SubtitleTextBlockStyle}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Sources" Opacity="0.7" />
+                    <TextBlock x:Name="SourceCountText" Text="0" Style="{StaticResource SubtitleTextBlockStyle}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Database" Opacity="0.7" />
+                    <TextBlock x:Name="DatabaseSizeText" Text="0 B" Style="{StaticResource SubtitleTextBlockStyle}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" RowSpacing="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="IngestFilesButton" Content="Ingest files" Click="IngestFiles_Click" />
+                <Button x:Name="IngestFolderButton" Content="Ingest folder" Click="IngestFolder_Click" />
+            </StackPanel>
+            <Border
+                Grid.Row="1"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="24">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+                    <FontIcon Glyph="&#xE8E5;" FontSize="32" Opacity="0.6" />
+                    <TextBlock x:Name="StatusText" Text="Drop files or a folder here" HorizontalAlignment="Center" />
+                    <ProgressBar x:Name="IngestProgress" Width="280" Visibility="Collapsed" IsIndeterminate="True" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

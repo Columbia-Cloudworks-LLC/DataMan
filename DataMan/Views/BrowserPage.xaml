@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="DataMan.Views.BrowserPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Padding="24" ColumnSpacing="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.1*" />
+            <ColumnDefinition Width="1.4*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Browser" Style="{StaticResource TitleTextBlockStyle}" />
+        <AutoSuggestBox
+            x:Name="SearchBox"
+            Grid.Row="1"
+            Margin="0,12,0,12"
+            PlaceholderText="Search extracted text"
+            QueryIcon="Find"
+            QuerySubmitted="SearchBox_QuerySubmitted"
+            TextChanged="SearchBox_TextChanged" />
+        <ListView
+            x:Name="ItemList"
+            Grid.Row="2"
+            SelectionChanged="ItemList_SelectionChanged">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Spacing="2" Padding="0,6">
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Subtitle}" Opacity="0.7" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <ScrollViewer Grid.Column="1" Grid.RowSpan="3">
+            <StackPanel Spacing="12" Padding="8,0,0,0">
+                <TextBlock x:Name="DetailTitle" Text="Select an item" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" />
+                <TextBlock x:Name="DetailMeta" Opacity="0.7" TextWrapping="Wrap" />
+                <TextBlock x:Name="DetailBody" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

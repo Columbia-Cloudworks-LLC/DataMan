@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Company>Columbia Cloudworks LLC</Company>
+    <Authors>Columbia Cloudworks LLC</Authors>
+    <Copyright>Copyright 2026 Columbia Cloudworks LLC</Copyright>
+    <Product>DataMan</Product>
+  </PropertyGroup>
+</Project>

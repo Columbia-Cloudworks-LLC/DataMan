@@ -1,0 +1,12 @@
+---
+description: WinUI and C# build and storage facts for DataMan
+globs: "**/*.{cs,xaml,csproj}"
+alwaysApply: false
+---
+
+# DataMan C# and WinUI
+
+- Build WinUI with `-p:Platform=x64` via `scripts/dev-build.ps1`.
+- After edits, `scripts/check-edited-file.ps1` formats and builds the owning project.
+- Never store original binaries in SQLite.
+- `ItemStatus` and `FileLocator` live in DataMan.Contracts.

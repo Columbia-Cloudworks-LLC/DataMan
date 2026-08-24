@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="DataMan.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Padding="32" Spacing="16" MaxWidth="720">
+        <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}" />
+        <TextBlock Text="Library" Style="{StaticResource SubtitleTextBlockStyle}" />
+        <TextBlock x:Name="DatabasePathText" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+        <TextBlock x:Name="SchemaText" Opacity="0.75" />
+        <TextBlock Text="Plugins" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,0" />
+        <ListView x:Name="PluginList" SelectionMode="None" />
+    </StackPanel>
+</Page>

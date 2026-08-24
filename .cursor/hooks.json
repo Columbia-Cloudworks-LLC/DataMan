@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\after-file-edit.ps1",
+        "failClosed": true
+      }
+    ]
+  }
+}
