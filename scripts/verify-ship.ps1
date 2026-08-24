@@ -26,7 +26,8 @@ function Invoke-RequiredScript {
         [string]$RelPath
     )
     $script = Join-Path $root $RelPath
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script
+    $psExe = (Get-Process -Id $PID).Path
+    & $psExe -NoProfile -ExecutionPolicy Bypass -File $script
     if ($LASTEXITCODE -ne 0) {
         Write-Check -Name $Name -Status "FAIL" -Detail "exit $LASTEXITCODE"
         $script:failed = $true
@@ -60,6 +61,9 @@ if ($null -eq $gt) {
     Write-Check -Name "graphite-cli" -Status "PASS" -Detail $gtVersion.Trim()
 
     $gitCommonDir = (git -C $root rev-parse --git-common-dir).Trim()
+    if (-not [IO.Path]::IsPathRooted($gitCommonDir)) {
+        $gitCommonDir = Join-Path $root $gitCommonDir
+    }
     $repoConfigPath = Join-Path $gitCommonDir ".graphite_repo_config"
     if (Test-Path -LiteralPath $repoConfigPath) {
         $repoConfig = Get-Content -LiteralPath $repoConfigPath -Raw | ConvertFrom-Json
@@ -94,12 +98,17 @@ if ($null -eq $gh) {
         Write-OptionalIssue -Name "actions-create-pr" -Status "SKIP" -Detail "origin is not GitHub"
     } else {
         $slug = "$($Matches[1])/$($Matches[2])"
-        $permsJson = gh api "repos/$slug/actions/permissions/workflow" 2>&1
+        $permsJson = gh api "repos/$slug/actions/permissions/workflow" 2>$null
         if ($LASTEXITCODE -ne 0) {
             Write-OptionalIssue -Name "actions-create-pr" -Status "WARN" -Detail "gh api failed"
         } else {
-            $perms = $permsJson | ConvertFrom-Json
-            $canCreate = ($perms.default_workflow_permissions -eq "write") -and $perms.can_approve_pull_request_reviews
+            try {
+              $perms = $permsJson | ConvertFrom-Json -ErrorAction Stop
+          } catch {
+              Write-OptionalIssue -Name "actions-create-pr" -Status "WARN" -Detail "gh api returned invalid JSON"
+              $perms = $null
+          }
+            $canCreate = ($null -ne $perms) -and ($perms.default_workflow_permissions -eq "write") -and $perms.can_approve_pull_request_reviews
             if ($canCreate) {
                 Write-Check -Name "actions-create-pr" -Status "PASS"
             } else {
