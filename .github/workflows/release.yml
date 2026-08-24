@@ -55,3 +55,30 @@ jobs:
             throw "missing zip '$zip'"
           }
           gh release upload ${{ needs.release-please.outputs.tag_name }} $zip --clobber
+
+  package-linux:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Publish linux-x64 tarball
+        id: publish
+        run: |
+          tarball="$(./scripts/publish-linux-x64.sh | tail -n 1)"
+          test -f "$tarball"
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+      - name: Upload tarball to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tarball="${{ steps.publish.outputs.tarball }}"
+          test -f "$tarball"
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" "$tarball" --clobber

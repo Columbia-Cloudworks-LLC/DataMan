@@ -9,6 +9,8 @@ namespace DataMan.Desktop.Views;
 
 public sealed partial class DashboardView : UserControl
 {
+    private bool _ingesting;
+
     public DashboardView()
     {
         InitializeComponent();
@@ -55,21 +57,22 @@ public sealed partial class DashboardView : UserControl
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {
-        e.DragEffects = e.Data.Contains(DataFormats.Files)
+        e.DragEffects = !_ingesting && e.Data.Contains(DataFormats.Files)
             ? DragDropEffects.Copy
             : DragDropEffects.None;
     }
 
-    private void OnDrop(object? sender, DragEventArgs e)
-        => _ = IngestAsync(PathPicker.PathsFromDrop(e.Data));
+    private async void OnDrop(object? sender, DragEventArgs e)
+        => await IngestAsync(PathPicker.PathsFromDrop(e.Data));
 
     private async Task IngestAsync(IReadOnlyList<string> paths)
     {
-        if (paths.Count == 0)
+        if (paths.Count == 0 || _ingesting)
         {
             return;
         }
 
+        _ingesting = true;
         IngestProgress.IsVisible = true;
         IngestFilesButton.IsEnabled = false;
         IngestFolderButton.IsEnabled = false;
@@ -93,6 +96,7 @@ public sealed partial class DashboardView : UserControl
         }
         finally
         {
+            _ingesting = false;
             IngestProgress.IsVisible = false;
             IngestFilesButton.IsEnabled = true;
             IngestFolderButton.IsEnabled = true;
