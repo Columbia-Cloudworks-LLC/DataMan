@@ -11,7 +11,8 @@ $required = @(
     ".cursor\hooks\after-file-edit.ps1",
     ".cursor\rules\csharp-winui.mdc",
     "scripts\dev-build.ps1",
-    "scripts\check-edited-file.ps1"
+    "scripts\check-edited-file.ps1",
+    "scripts\verify-ship.ps1"
 )
 
 foreach ($rel in $required) {
@@ -27,7 +28,7 @@ foreach ($rel in @(".vscode\tasks.json", ".vscode\launch.json", ".vscode\setting
 
 $tasks = Get-Content -LiteralPath (Join-Path $root ".vscode\tasks.json") -Raw
 if ($tasks -notmatch "dev-build\.ps1") { throw "tasks.json does not call dev-build.ps1" }
-if ($tasks -notmatch "verify-mvp\.ps1") { throw "tasks.json does not call verify-mvp.ps1" }
+if ($tasks -notmatch "verify-ship\.ps1") { throw "tasks.json does not call verify-ship.ps1" }
 
 $launch = Get-Content -LiteralPath (Join-Path $root ".vscode\launch.json") -Raw
 if ($launch -notmatch "net8\.0-windows10\.0\.19041\.0/DataMan\.exe") { throw "launch.json program path is wrong" }

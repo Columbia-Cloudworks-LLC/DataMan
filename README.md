@@ -15,7 +15,7 @@ This tree implements the Phase 0 and Phase 1 slice, plus Phase 2 plugin loading.
 Install the recommended C# and C# Dev Kit extensions when Cursor prompts.
 
 - Terminal > Run Task > `build` compiles Contracts, Core, Tests, then the x64 WinUI host.
-- Terminal > Run Task > `test` runs `scripts\verify-mvp.ps1`.
+- Terminal > Run Task > `test` runs `scripts\verify-ship.ps1`.
 - Terminal > Run Task > `run` builds, then starts the unpackaged exe.
 - Run and Debug > `Debug DataMan` builds, then launches that same exe under the .NET debugger.
 
@@ -26,11 +26,10 @@ Visual Studio can still deploy `DataMan (Package)` if you want MSIX. That path w
 ## Verify
 
 ```powershell
-.\scripts\verify-mvp.ps1
-.\scripts\verify-cursor-setup.ps1
+.\scripts\verify-ship.ps1
 ```
 
-The first script runs ingest and search tests, then builds the host. The second checks the Cursor task, launch, and hook wiring. `.\scripts\publish-win-x64.ps1` writes `artifacts\DataMan-X.Y.Z-win-x64.zip`, using the version from `Directory.Build.props`.
+That script runs the ingest and search tests, builds the host, and checks the Cursor task, launch, and hook wiring. `.\scripts\publish-win-x64.ps1` writes `artifacts\DataMan-X.Y.Z-win-x64.zip`, using the version from `Directory.Build.props`.
 
 ## What is in
 
