@@ -16,12 +16,22 @@ public sealed class OnnxTextEmbedder : ITextEmbedder, IDisposable
 
     private OnnxTextEmbedder(string modelPath, string vocabPath)
     {
-        _session = new InferenceSession(modelPath);
-        _tokenizer = BertTokenizer.Create(vocabPath, new BertOptions
+        var session = new InferenceSession(modelPath);
+        try
         {
-            LowerCaseBeforeTokenization = true
-        });
-        Model = new EmbeddingModel("all-minilm-l6-v2", ReadOutputWidth(_session));
+            var tokenizer = BertTokenizer.Create(vocabPath, new BertOptions
+            {
+                LowerCaseBeforeTokenization = true
+            });
+            _session = session;
+            _tokenizer = tokenizer;
+            Model = new EmbeddingModel("all-minilm-l6-v2", ReadOutputWidth(session));
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
     }
 
     public EmbeddingModel Model { get; }
