@@ -8,37 +8,22 @@ public static class PluginCatalog
 {
     public static CatalogSnapshot Load(string? pluginsDirectory, IEnumerable<IIngestionPlugin> builtIns)
     {
+        ArgumentNullException.ThrowIfNull(builtIns);
         var builtInList = builtIns.ToArray();
         var (units, scanIssues) = ManifestDirectory.ReadAll(pluginsDirectory);
         var issues = new List<CatalogIssue>(scanIssues);
         var unique = Deduplicate(units, issues);
         var index = unique.ToDictionary(unit => unit.Id, StringComparer.Ordinal);
 
-        var referencedByBundle = unique.OfType<BundleUnit>()
-            .SelectMany(bundle => bundle.PluginRefs)
-            .ToHashSet(StringComparer.Ordinal);
-        var resolved = new HashSet<string>(StringComparer.Ordinal);
-
         foreach (var bundle in unique.OfType<BundleUnit>())
         {
-            switch (BundleFlattener.Flatten(bundle, index))
+            if (BundleFlattener.Flatten(bundle, index) is FlattenCycle cycle)
             {
-                case FlattenCycle cycle:
-                    issues.Add(new CatalogIssue(
-                        CatalogIssueKind.Cycle,
-                        "Bundle graph contains a cycle.",
-                        bundle.ManifestPath,
-                        string.Join(" -> ", cycle.Path)));
-                    break;
-                case FlattenOk flat:
-                    foreach (var plugin in flat.Plugins)
-                    {
-                        resolved.Add(plugin.Id);
-                    }
-
-                    break;
-                default:
-                    throw new InvalidOperationException("Unexpected flatten result.");
+                issues.Add(new CatalogIssue(
+                    CatalogIssueKind.Cycle,
+                    "Bundle graph contains a cycle.",
+                    bundle.ManifestPath,
+                    string.Join(" -> ", cycle.Path)));
             }
         }
 
@@ -48,11 +33,6 @@ public static class PluginCatalog
         {
             foreach (var plugin in unique.OfType<PluginUnit>().OrderBy(unit => unit.Id, StringComparer.Ordinal))
             {
-                if (referencedByBundle.Contains(plugin.Id) && !resolved.Contains(plugin.Id))
-                {
-                    continue;
-                }
-
                 if (plugin.Dependencies.Length > 0)
                 {
                     issues.Add(new CatalogIssue(
