@@ -19,6 +19,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(_ => PluginCatalog.Load(pluginsDirectory, BuiltInIngestionPlugins.CreateAll()));
         services.AddSingleton(sp => new PluginRegistry(sp.GetRequiredService<CatalogSnapshot>().Plugins));
         services.AddSingleton<IngestionOrchestrator>();
+        services.AddSingleton<SourceReconciler>();
+        services.AddSingleton<WatchedRootMonitor>();
         return services;
     }
 }

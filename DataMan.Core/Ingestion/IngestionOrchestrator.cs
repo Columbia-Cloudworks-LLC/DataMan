@@ -12,6 +12,7 @@ public sealed class IngestionOrchestrator
     private readonly IItemWriter _writer;
     private readonly PluginRegistry _plugins;
     private readonly IServiceProvider _services;
+    private readonly WatchedRootMonitor _monitor;
     private readonly ILogger<IngestionOrchestrator> _logger;
 
     public IngestionOrchestrator(
@@ -19,12 +20,14 @@ public sealed class IngestionOrchestrator
         IItemWriter writer,
         PluginRegistry plugins,
         IServiceProvider services,
+        WatchedRootMonitor monitor,
         ILogger<IngestionOrchestrator> logger)
     {
         _library = library;
         _writer = writer;
         _plugins = plugins;
         _services = services;
+        _monitor = monitor;
         _logger = logger;
     }
 
@@ -119,6 +122,8 @@ public sealed class IngestionOrchestrator
             Total = files.Count
         });
 
+        WatchFolderRoots(paths);
+
         return new BatchIngestionResult
         {
             Accepted = itemIds.Count,
@@ -182,6 +187,29 @@ public sealed class IngestionOrchestrator
         }
 
         return parentId;
+    }
+
+    private void WatchFolderRoots(IEnumerable<string> paths)
+    {
+        foreach (var raw in paths)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                continue;
+            }
+
+            var path = Path.GetFullPath(raw);
+            if (!Directory.Exists(path))
+            {
+                continue;
+            }
+
+            var sourceId = _library.EnsureLocalSource(
+                Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar)),
+                path);
+            _library.MarkSourceWatched(sourceId);
+            _monitor.Watch(sourceId, path);
+        }
     }
 
     private static List<DiscoveredFile> ExpandFiles(IEnumerable<string> paths)
