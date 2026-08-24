@@ -76,20 +76,34 @@
     const draft = document.getElementById("draft");
     const vector = document.getElementById("vector");
     const canvas = document.getElementById("compare");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const opacity = document.getElementById("opacity");
     const diff = document.getElementById("diff");
     const status = document.getElementById("status");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) {
+      status.textContent = "Canvas 2D context unavailable";
+    }
 
     function load(img) {
-      return new Promise((resolve) => {
-        if (img.complete && img.naturalWidth) resolve();
-        else img.addEventListener("load", () => resolve(), { once: true });
+      return new Promise((resolve, reject) => {
+        if (img.complete) {
+          if (img.naturalWidth) resolve();
+          else reject(new Error(`${img.alt} image failed to load`));
+        } else {
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => reject(new Error(`${img.alt} image failed to load`)), { once: true });
+        }
       });
     }
 
     async function paint() {
-      await Promise.all([load(draft), load(vector)]);
+      if (!ctx) return;
+      try {
+        await Promise.all([load(draft), load(vector)]);
+      } catch (error) {
+        status.textContent = error.message;
+        return;
+      }
       const w = 321, h = 321;
       ctx.clearRect(0, 0, w, h);
       ctx.imageSmoothingEnabled = false;
@@ -129,7 +143,9 @@
       }
     }
 
-    opacity.addEventListener("input", paint);
+    opacity.addEventListener("input", () => {
+      if (!diff.checked) paint();
+    });
     diff.addEventListener("change", paint);
     paint();
   </script>
