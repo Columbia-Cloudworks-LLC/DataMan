@@ -1,0 +1,7 @@
+{
+  "name": "DataMan",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "install": "bash scripts/cloud-agent-install.sh"
+}
