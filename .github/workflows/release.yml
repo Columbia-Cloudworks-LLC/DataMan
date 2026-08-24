@@ -40,11 +40,18 @@ jobs:
         id: publish
         shell: pwsh
         run: |
-          $zip = .\scripts\publish-win-x64.ps1
-          "zip=$zip" >> $env:GITHUB_OUTPUT
+          $zip = (.\scripts\publish-win-x64.ps1 | Select-Object -Last 1).Trim()
+          if (-not (Test-Path -LiteralPath $zip)) {
+            throw "publish-win-x64.ps1 did not write a zip at '$zip'"
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "zip=$zip"
       - name: Upload zip to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
-          gh release upload ${{ needs.release-please.outputs.tag_name }} ${{ steps.publish.outputs.zip }} --clobber
+          $zip = "${{ steps.publish.outputs.zip }}"
+          if (-not (Test-Path -LiteralPath $zip)) {
+            throw "missing zip '$zip'"
+          }
+          gh release upload ${{ needs.release-please.outputs.tag_name }} $zip --clobber

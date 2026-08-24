@@ -19,8 +19,11 @@ jobs:
         id: publish
         shell: pwsh
         run: |
-          $zip = .\scripts\publish-win-x64.ps1
-          "zip=$zip" >> $env:GITHUB_OUTPUT
+          $zip = (.\scripts\publish-win-x64.ps1 | Select-Object -Last 1).Trim()
+          if (-not (Test-Path -LiteralPath $zip)) {
+            throw "publish-win-x64.ps1 did not write a zip at '$zip'"
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "zip=$zip"
       - name: Attach zip to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -28,9 +31,12 @@ jobs:
         run: |
           $tag = "${{ github.ref_name }}"
           $zip = "${{ steps.publish.outputs.zip }}"
+          if (-not (Test-Path -LiteralPath $zip)) {
+            throw "missing zip '$zip'"
+          }
           gh release view $tag > $null 2>&1
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag $zip --title $tag --generate-notes
+            gh release create $tag --title $tag --generate-notes $zip
           } else {
             gh release upload $tag $zip --clobber
           }

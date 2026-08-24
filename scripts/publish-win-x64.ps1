@@ -23,7 +23,7 @@ $project = Join-Path $root "DataMan\DataMan.csproj"
     -p:WindowsAppSDKSelfContained=true `
     -p:PublishReadyToRun=false `
     -o $publishDir `
-    --nologo
+    --nologo | ForEach-Object { Write-Host $_ }
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
