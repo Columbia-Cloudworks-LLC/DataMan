@@ -5,7 +5,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <StackPanel Padding="32" Spacing="16" MaxWidth="720">
-        <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <Image Source="ms-appx:///Assets/Brand/Mark.png" Width="32" Height="32" Stretch="Uniform" />
+            <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center" />
+        </StackPanel>
         <TextBlock Text="Library" Style="{StaticResource SubtitleTextBlockStyle}" />
         <TextBlock x:Name="DatabasePathText" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
         <TextBlock x:Name="SchemaText" Opacity="0.75" />

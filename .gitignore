@@ -9,4 +9,5 @@ artifacts/
 AppPackages/
 BundleArtifacts/
 .cursor/hooks/state/
+scripts/brand/node_modules/
 *.assets.cache
