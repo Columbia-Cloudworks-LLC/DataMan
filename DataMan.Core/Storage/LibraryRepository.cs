@@ -186,6 +186,34 @@ public sealed class LibraryRepository
         command.ExecuteNonQuery();
     }
 
+    public IReadOnlyList<(string SourceId, string RootPath)> ListLocalFilesystemRoots()
+    {
+        using var connection = _database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT source_id, root_locator
+            FROM sources
+            WHERE type = 'local_filesystem'
+              AND root_locator IS NOT NULL;
+            """;
+
+        var roots = new List<(string SourceId, string RootPath)>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            try
+            {
+                var locator = FileLocator.Parse(reader.GetString(1));
+                roots.Add((reader.GetString(0), locator.Path));
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
+        return roots;
+    }
+
     public void TouchLastScanAt(string sourceId)
     {
         using var connection = _database.Open();
