@@ -21,7 +21,19 @@ internal static class ManifestDirectory
         var units = new List<ManifestUnit>();
         var issues = new List<CatalogIssue>();
 
-        foreach (var child in Directory.EnumerateDirectories(pluginsDirectory).OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
+        string[] children;
+        try
+        {
+            children = Directory.EnumerateDirectories(pluginsDirectory)
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return ([], [new CatalogIssue(CatalogIssueKind.InvalidManifest, ex.Message, pluginsDirectory)]);
+        }
+
+        foreach (var child in children)
         {
             var pluginManifest = Path.Combine(child, "plugin.json");
             var bundleManifest = Path.Combine(child, "bundle.json");
@@ -70,14 +82,8 @@ internal static class ManifestDirectory
         plugin = null!;
         issue = null;
 
-        PluginManifestJson? dto;
-        try
+        if (!TryReadJson(path, out PluginManifestJson? dto, out issue))
         {
-            dto = JsonSerializer.Deserialize<PluginManifestJson>(File.ReadAllText(path), JsonOptions);
-        }
-        catch (JsonException ex)
-        {
-            issue = new CatalogIssue(CatalogIssueKind.InvalidManifest, ex.Message, path);
             return false;
         }
 
@@ -113,14 +119,8 @@ internal static class ManifestDirectory
         bundle = null!;
         issue = null;
 
-        BundleManifestJson? dto;
-        try
+        if (!TryReadJson(path, out BundleManifestJson? dto, out issue))
         {
-            dto = JsonSerializer.Deserialize<BundleManifestJson>(File.ReadAllText(path), JsonOptions);
-        }
-        catch (JsonException ex)
-        {
-            issue = new CatalogIssue(CatalogIssueKind.InvalidManifest, ex.Message, path);
             return false;
         }
 
@@ -137,6 +137,22 @@ internal static class ManifestDirectory
             [.. dto.Plugins ?? []],
             [.. dto.Bundles ?? []]);
         return true;
+    }
+
+    private static bool TryReadJson<T>(string path, out T? dto, out CatalogIssue? issue)
+    {
+        dto = default;
+        issue = null;
+        try
+        {
+            dto = JsonSerializer.Deserialize<T>(File.ReadAllText(path), JsonOptions);
+            return true;
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            issue = new CatalogIssue(CatalogIssueKind.InvalidManifest, ex.Message, path);
+            return false;
+        }
     }
 
     private sealed class PluginManifestJson

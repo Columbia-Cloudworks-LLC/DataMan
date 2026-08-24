@@ -33,6 +33,33 @@ public sealed class PluginCatalogTests : IDisposable
     }
 
     [Fact]
+    public void Unreadable_manifest_is_an_issue_and_built_ins_remain()
+    {
+        var plugins = Path.Combine(_root, "locked");
+        var folder = Path.Combine(plugins, "bad");
+        Directory.CreateDirectory(folder);
+        var manifest = Path.Combine(folder, "plugin.json");
+        File.WriteAllText(
+            manifest,
+            """
+            {
+              "id": "locked",
+              "version": "1.0.0",
+              "assembly": "locked.dll",
+              "entryType": "Locked"
+            }
+            """);
+
+        using var hold = new FileStream(manifest, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        var snapshot = PluginCatalog.Load(plugins, BuiltInIngestionPlugins.CreateAll());
+
+        Assert.Equal(3, snapshot.Plugins.Count);
+        Assert.Contains(
+            snapshot.Issues,
+            issue => issue.Kind == CatalogIssueKind.InvalidManifest && issue.Path == manifest);
+    }
+
+    [Fact]
     public void Flatten_expands_nested_bundles_and_rejects_cycles()
     {
         var csv = new PluginUnit(
