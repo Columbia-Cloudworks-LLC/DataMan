@@ -11,6 +11,9 @@ public sealed partial class SettingsPage : Page
     public SettingsPage()
     {
         InitializeComponent();
+        AppearanceSystem.Checked += (_, _) => SelectIfChecked(AppearanceSystem, new Appearance.System());
+        AppearanceLight.Checked += (_, _) => SelectIfChecked(AppearanceLight, new Appearance.Light());
+        AppearanceDark.Checked += (_, _) => SelectIfChecked(AppearanceDark, new Appearance.Dark());
         Loaded += (_, _) =>
         {
             var stats = App.Services.GetRequiredService<LibraryRepository>().GetStats();
@@ -20,9 +23,6 @@ public sealed partial class SettingsPage : Page
                 .Select(plugin => $"{plugin.DisplayName} ({plugin.Id} {plugin.Version})")
                 .ToArray();
             ShowCurrentAppearance();
-            AppearanceSystem.Checked += (_, _) => SelectIfChecked(AppearanceSystem, new Appearance.System());
-            AppearanceLight.Checked += (_, _) => SelectIfChecked(AppearanceLight, new Appearance.Light());
-            AppearanceDark.Checked += (_, _) => SelectIfChecked(AppearanceDark, new Appearance.Dark());
         };
     }
 
