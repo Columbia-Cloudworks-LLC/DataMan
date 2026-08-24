@@ -6,6 +6,8 @@ namespace DataMan.Core.Storage;
 
 public sealed class LibraryRepository
 {
+    public const string ContainsRelation = "contains";
+
     private readonly AppDatabase _database;
     private readonly SemanticCorpus _corpus;
 
@@ -67,6 +69,30 @@ public sealed class LibraryRepository
             LIMIT $limit;
             """;
         command.Parameters.AddWithValue("$limit", limit);
+        return ReadItems(command);
+    }
+
+    public IReadOnlyList<ItemRecord> GetRelatedItems(
+        string itemId,
+        string? relationType = null,
+        int limit = 50)
+    {
+        using var connection = _database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT i.item_id, i.parent_item_id, i.source_id, i.kind, i.subtype, i.title,
+                   i.content_hash, i.original_hash, i.locator, i.mime_type, i.size_bytes,
+                   i.ingested_at, i.status
+            FROM relationships r
+            JOIN items i ON i.item_id = r.to_item_id
+            WHERE r.from_item_id = $item_id
+              AND ($type IS NULL OR r.relation_type = $type)
+            ORDER BY i.title COLLATE NOCASE
+            LIMIT $limit;
+            """;
+        command.Parameters.AddWithValue("$item_id", itemId);
+        command.Parameters.AddWithValue("$type", (object?)relationType ?? DBNull.Value);
+        command.Parameters.AddWithValue("$limit", Clamp(limit));
         return ReadItems(command);
     }
 

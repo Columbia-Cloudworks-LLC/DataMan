@@ -38,6 +38,8 @@ public sealed class SqliteItemWriter : IItemWriter
                 UpdateItem(connection, itemId, item, now);
             }
 
+            MirrorContains(connection, itemId, item.ParentItemId, now);
+
             if (content is not null)
             {
                 committed = UpsertContent(connection, itemId, content, now);
@@ -130,6 +132,48 @@ public sealed class SqliteItemWriter : IItemWriter
         command.Parameters.AddWithValue("$ingested_at", now);
         command.Parameters.AddWithValue("$last_checked_at", now);
         command.Parameters.AddWithValue("$status", ItemStatusCodec.ToStorage(item.Status));
+    }
+
+    private static void MirrorContains(
+        SqliteConnection connection,
+        string childItemId,
+        string? parentItemId,
+        string now)
+    {
+        using (var prune = connection.CreateCommand())
+        {
+            prune.CommandText = """
+                DELETE FROM relationships
+                WHERE to_item_id = $child
+                  AND relation_type = $type
+                  AND ($parent IS NULL OR from_item_id != $parent);
+                """;
+            prune.Parameters.AddWithValue("$child", childItemId);
+            prune.Parameters.AddWithValue("$type", LibraryRepository.ContainsRelation);
+            prune.Parameters.AddWithValue("$parent", (object?)parentItemId ?? DBNull.Value);
+            prune.ExecuteNonQuery();
+        }
+
+        if (parentItemId is null)
+        {
+            return;
+        }
+
+        using var insert = connection.CreateCommand();
+        insert.CommandText = """
+            INSERT INTO relationships (
+                relationship_id, from_item_id, to_item_id, relation_type, created_at
+            ) VALUES (
+                $relationship_id, $parent, $child, $type, $created_at
+            )
+            ON CONFLICT(from_item_id, to_item_id, relation_type) DO NOTHING;
+            """;
+        insert.Parameters.AddWithValue("$relationship_id", Guid.NewGuid().ToString("D"));
+        insert.Parameters.AddWithValue("$parent", parentItemId);
+        insert.Parameters.AddWithValue("$child", childItemId);
+        insert.Parameters.AddWithValue("$type", LibraryRepository.ContainsRelation);
+        insert.Parameters.AddWithValue("$created_at", now);
+        insert.ExecuteNonQuery();
     }
 
     private static ContentCommit UpsertContent(SqliteConnection connection, string itemId, ContentDraft content, string now)
