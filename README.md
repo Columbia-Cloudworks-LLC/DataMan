@@ -39,7 +39,8 @@ That script runs the ingest and search tests, builds the host, and checks the Cu
 - Directory discovery, collectible `AssemblyLoadContext` load, and nested bundle flatten
 - Dashboard with drag-and-drop and file/folder pickers
 - Browser with list, detail, and full-text search
+- Local file moves and renames on a watched or scanned folder keep the same `item_id` via `original_hash`
 
 ## What is not
 
-Embeddings, MCP, the SQL editor, file-move reconciliation, and cloud sources stay for later Phase 2 work.
+Embeddings, MCP, the SQL editor, and cloud sources stay for later Phase 2 work.

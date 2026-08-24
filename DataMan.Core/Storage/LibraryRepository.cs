@@ -134,6 +134,72 @@ public sealed class LibraryRepository
         return hits;
     }
 
+    public IReadOnlyList<ItemRecord> ListFileItemsBySource(string sourceId)
+    {
+        using var connection = _database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT item_id, parent_item_id, source_id, kind, subtype, title,
+                   content_hash, original_hash, locator, mime_type, size_bytes,
+                   ingested_at, status
+            FROM items
+            WHERE source_id = $source_id
+              AND kind != 'folder';
+            """;
+        command.Parameters.AddWithValue("$source_id", sourceId);
+        return ReadItems(command);
+    }
+
+    public void UpdateItemLocation(string itemId, string locatorJson, string title, ItemStatus status)
+    {
+        using var connection = _database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE items
+            SET locator = $locator,
+                title = $title,
+                status = $status,
+                last_checked_at = $now
+            WHERE item_id = $item_id;
+            """;
+        command.Parameters.AddWithValue("$item_id", itemId);
+        command.Parameters.AddWithValue("$locator", locatorJson);
+        command.Parameters.AddWithValue("$title", title);
+        command.Parameters.AddWithValue("$status", ItemStatusCodec.ToStorage(status));
+        command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+        command.ExecuteNonQuery();
+    }
+
+    public void UpdateItemStatus(string itemId, ItemStatus status)
+    {
+        using var connection = _database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE items
+            SET status = $status,
+                last_checked_at = $now
+            WHERE item_id = $item_id;
+            """;
+        command.Parameters.AddWithValue("$item_id", itemId);
+        command.Parameters.AddWithValue("$status", ItemStatusCodec.ToStorage(status));
+        command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+        command.ExecuteNonQuery();
+    }
+
+    public void TouchLastScanAt(string sourceId)
+    {
+        using var connection = _database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE sources
+            SET last_scan_at = $now
+            WHERE source_id = $source_id;
+            """;
+        command.Parameters.AddWithValue("$source_id", sourceId);
+        command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
+        command.ExecuteNonQuery();
+    }
+
     public LibraryStats GetStats()
     {
         using var connection = _database.Open();
