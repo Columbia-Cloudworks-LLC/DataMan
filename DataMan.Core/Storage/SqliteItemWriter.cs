@@ -49,7 +49,14 @@ public sealed class SqliteItemWriter : IItemWriter
 
         if (committed is { } commit)
         {
-            await _corpus.IndexAsync(commit.ContentId, itemId, commit.Body, cancellationToken);
+            try
+            {
+                await _corpus.IndexAsync(commit.ContentId, itemId, commit.Body, cancellationToken);
+            }
+            catch (Exception)
+            {
+                // Persistence has already committed; indexing is best-effort.
+            }
         }
 
         return itemId;
