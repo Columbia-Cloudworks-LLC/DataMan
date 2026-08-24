@@ -30,7 +30,7 @@ Visual Studio can still deploy `DataMan (Package)` if you want MSIX. That path w
 .\scripts\verify-cursor-setup.ps1
 ```
 
-The first script runs ingest and search tests, then builds the host. The second checks the Cursor task, launch, and hook wiring. `.\scripts\publish-win-x64.ps1` writes `artifacts\DataMan-0.1.0-win-x64.zip`.
+The first script runs ingest and search tests, then builds the host. The second checks the Cursor task, launch, and hook wiring. `.\scripts\publish-win-x64.ps1` writes `artifacts\DataMan-X.Y.Z-win-x64.zip`, using the version from `Directory.Build.props`.
 
 ## What is in
 
