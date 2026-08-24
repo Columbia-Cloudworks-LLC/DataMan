@@ -38,7 +38,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "scripts\\verify-mvp.ps1"
+        "scripts\\verify-ship.ps1"
       ],
       "group": {
         "kind": "test",
