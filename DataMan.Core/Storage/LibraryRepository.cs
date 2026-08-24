@@ -192,7 +192,7 @@ public sealed class LibraryRepository
         using var command = connection.CreateCommand();
         command.CommandText = """
             UPDATE sources
-            SET properties = '{"watch":true}'
+            SET properties = json_set(COALESCE(properties, '{}'), '$.watch', 1)
             WHERE source_id = $source_id;
             """;
         command.Parameters.AddWithValue("$source_id", sourceId);
