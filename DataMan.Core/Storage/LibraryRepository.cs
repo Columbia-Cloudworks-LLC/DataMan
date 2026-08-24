@@ -186,7 +186,20 @@ public sealed class LibraryRepository
         command.ExecuteNonQuery();
     }
 
-    public IReadOnlyList<(string SourceId, string RootPath)> ListLocalFilesystemRoots()
+    public void MarkSourceWatched(string sourceId)
+    {
+        using var connection = _database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE sources
+            SET properties = '{"watch":true}'
+            WHERE source_id = $source_id;
+            """;
+        command.Parameters.AddWithValue("$source_id", sourceId);
+        command.ExecuteNonQuery();
+    }
+
+    public IReadOnlyList<(string SourceId, string RootPath)> ListWatchedRoots()
     {
         using var connection = _database.Open();
         using var command = connection.CreateCommand();
@@ -194,7 +207,8 @@ public sealed class LibraryRepository
             SELECT source_id, root_locator
             FROM sources
             WHERE type = 'local_filesystem'
-              AND root_locator IS NOT NULL;
+              AND root_locator IS NOT NULL
+              AND json_extract(properties, '$.watch') = 1;
             """;
 
         var roots = new List<(string SourceId, string RootPath)>();

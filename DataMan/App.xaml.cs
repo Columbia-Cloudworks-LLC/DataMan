@@ -1,4 +1,5 @@
 ﻿using DataMan.Core.Hosting;
+using DataMan.Core.Ingestion;
 using DataMan.Core.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -26,6 +27,13 @@ public partial class App : Application
         try
         {
             Services.GetRequiredService<AppDatabase>().Initialize();
+            var library = Services.GetRequiredService<LibraryRepository>();
+            var monitor = Services.GetRequiredService<WatchedRootMonitor>();
+            foreach (var (sourceId, rootPath) in library.ListWatchedRoots())
+            {
+                monitor.Watch(sourceId, rootPath);
+            }
+
             _window = new MainWindow();
             MainWindow = _window;
             _window.Activate();

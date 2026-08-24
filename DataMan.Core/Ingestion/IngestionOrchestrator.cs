@@ -207,6 +207,7 @@ public sealed class IngestionOrchestrator
             var sourceId = _library.EnsureLocalSource(
                 Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar)),
                 path);
+            _library.MarkSourceWatched(sourceId);
             _monitor.Watch(sourceId, path);
         }
     }
