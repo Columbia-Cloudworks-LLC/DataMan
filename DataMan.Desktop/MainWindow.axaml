@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="DataMan.Desktop.MainWindow"
+        Title="DataMan"
+        Width="1200"
+        Height="800"
+        Icon="avares://DataMan.Desktop/Assets/Brand/DataMan.ico">
+    <DockPanel>
+        <Border DockPanel.Dock="Left"
+                Width="200"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Margin="16,16,16,8">
+                    <Image Width="28" Height="28" Stretch="Uniform"
+                           Source="avares://DataMan.Desktop/Assets/Brand/Mark.png" />
+                    <TextBlock Text="DataMan" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+                <ListBox x:Name="NavList" SelectionChanged="NavList_SelectionChanged">
+                    <ListBoxItem Tag="dashboard">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="16" Height="16" Data="{StaticResource DashboardIcon}" />
+                            <TextBlock Text="Dashboard" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="browser">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="16" Height="16" Data="{StaticResource BrowserIcon}" />
+                            <TextBlock Text="Browser" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="settings">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="16" Height="16" Data="{StaticResource SettingsIcon}" />
+                            <TextBlock Text="Settings" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                </ListBox>
+            </DockPanel>
+        </Border>
+        <ContentControl x:Name="ContentHost" />
+    </DockPanel>
+</Window>

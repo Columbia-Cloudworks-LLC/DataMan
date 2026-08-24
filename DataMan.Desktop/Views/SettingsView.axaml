@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="DataMan.Desktop.Views.SettingsView">
+    <StackPanel Margin="32" Spacing="16" MaxWidth="720">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <Image Width="32" Height="32" Stretch="Uniform"
+                   Source="avares://DataMan.Desktop/Assets/Brand/Mark.png" />
+            <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Text="Library" FontSize="20" FontWeight="SemiBold" />
+        <SelectableTextBlock x:Name="DatabasePathText" TextWrapping="Wrap" />
+        <TextBlock x:Name="SchemaText" Opacity="0.75" />
+        <TextBlock Text="Plugins" FontSize="20" FontWeight="SemiBold" Margin="0,12,0,0" />
+        <ListBox x:Name="PluginList" />
+    </StackPanel>
+</UserControl>
